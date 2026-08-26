@@ -68,6 +68,10 @@ Build a native mobile app "NekSathi" (Expo + expo-router, TypeScript) that talks
 - Emergent Mobile supports managed Expo + FastAPI + Mongo only — no bare/native workflow or custom native modules. Native Device-Admin anti-theft is out of scope here.
 - Server-side features (e.g. Razorpay escrow/payout) require the backend to be built inside an Emergent workspace; the agent can't modify the user's separate external backend.
 
+## Implemented (2026-06 / feature update 5)
+- [x] **Scan Alert Badge**: `src/services/scanBadge.ts` + TabBar — polls incidents+alerts count every 30s and shows a red dot on the Security tab when new scans arrive since last viewed; cleared when the Security tab is opened.
+- [x] **Recovery Receipt**: `src/services/receipts.ts` + `app/receipts.tsx` — every reward paid on recovery is logged on-device (item, finder UPI, amount, date, paid/logged status). Entry: Safety → Recovery receipts.
+
 ## Backlog
 - P1: Native Device-Admin anti-theft module (remote lock/siren/intruder-selfie + shutdown-resistant tracking).
 - P1: Real reward payout — integrate a payment gateway (e.g. Razorpay) with escrow + release-on-return (needs backend support).

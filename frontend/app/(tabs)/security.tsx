@@ -27,6 +27,7 @@ import { GlassCard } from "@/src/components/GlassCard";
 import { NeonButton } from "@/src/components/NeonButton";
 import { OverlayForm } from "@/src/components/OverlayForm";
 import { ScreenHeader } from "@/src/components/ScreenHeader";
+import { addReceipt } from "@/src/services/receipts";
 import { useToast } from "@/src/context/ToastContext";
 import { colors, fonts, fontSize, radius, spacing, tint } from "@/src/theme";
 
@@ -190,6 +191,7 @@ function SmartQr() {
       }
     }
     await applyLost(it, false);
+    await addReceipt({ item: it.name, finderUpi: upi, amount: amt, paid: !!upi });
     toast("Marked recovered — lost mode off", "success");
   };
 
