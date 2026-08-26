@@ -20,6 +20,7 @@ export interface User {
   is_org: boolean;
   suspended: boolean;
   notify_prefs: NotifyPrefs;
+  escalate_seconds?: number;
   avatar_base64: string | null;
 }
 

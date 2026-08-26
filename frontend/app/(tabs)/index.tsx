@@ -6,7 +6,8 @@ import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-na
 import Animated, { FadeInDown } from "react-native-reanimated";
 
 import { errMessage } from "@/src/api/client";
-import { listContacts, listSafeZones, listSosEvents, startLiveShare, triggerSos } from "@/src/api/endpoints";
+import { ackSos, listContacts, listSafeZones, listSosEvents, startLiveShare, triggerSos } from "@/src/api/endpoints";
+import { SosEvent } from "@/src/api/types";
 import { GlassCard } from "@/src/components/GlassCard";
 import { ScreenHeader } from "@/src/components/ScreenHeader";
 import { SOSButton } from "@/src/components/SOSButton";
@@ -32,6 +33,7 @@ export default function Home() {
   const [blocked, setBlocked] = useState(false);
   const [stats, setStats] = useState({ sos: 0, contacts: 0, zones: 0 });
   const [hasNew, setHasNew] = useState(false);
+  const [activeSos, setActiveSos] = useState<SosEvent | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -46,9 +48,24 @@ export default function Home() {
 
   const loadStats = useCallback(() => {
     Promise.all([listSosEvents(), listContacts(), listSafeZones()])
-      .then(([sos, contacts, zones]) => setStats({ sos: sos.length, contacts: contacts.length, zones: zones.length }))
+      .then(([sos, contacts, zones]) => {
+        setStats({ sos: sos.length, contacts: contacts.length, zones: zones.length });
+        setActiveSos(sos.find((s) => !s.acknowledged) ?? null);
+      })
       .catch(() => {});
   }, []);
+
+  const onCancelSos = async () => {
+    if (!activeSos) return;
+    try {
+      await ackSos(activeSos.id);
+      setActiveSos(null);
+      toast("Marked safe — escalation stopped", "success");
+      loadStats();
+    } catch {
+      toast("Could not update", "error");
+    }
+  };
 
   useFocusEffect(useCallback(() => { loadStats(); }, [loadStats]));
 
@@ -111,6 +128,18 @@ export default function Home() {
         }
       />
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+        {activeSos && (
+          <View style={styles.sosBanner} testID="active-sos-banner">
+            <Feather name="alert-octagon" size={22} color="#fff" />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.sosBannerTitle}>SOS active</Text>
+              <Text style={styles.sosBannerSub}>Guardians alerted · escalating until acknowledged</Text>
+            </View>
+            <Pressable testID="active-sos-cancel" onPress={onCancelSos} style={styles.sosBannerBtn}>
+              <Text style={styles.sosBannerBtnText}>I'm safe</Text>
+            </Pressable>
+          </View>
+        )}
         <Text style={styles.prompt}>Tap and hold nothing — one tap on SOS instantly alerts your guardians with your live location.</Text>
 
         <View style={styles.sosWrap}>
@@ -196,6 +225,11 @@ function ActionRow({ icon, color, title, sub, onPress, testID }: { icon: keyof t
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
   bellDot: { position: "absolute", top: -2, right: -2, width: 9, height: 9, borderRadius: 5, backgroundColor: colors.red, borderWidth: 1.5, borderColor: colors.bg },
+  sosBanner: { flexDirection: "row", alignItems: "center", gap: spacing.md, backgroundColor: colors.red, borderRadius: radius.md, padding: spacing.md },
+  sosBannerTitle: { color: "#fff", fontFamily: fonts.display, fontSize: fontSize.lg, letterSpacing: 0.5 },
+  sosBannerSub: { color: "rgba(255,255,255,0.85)", fontFamily: fonts.body, fontSize: fontSize.sm },
+  sosBannerBtn: { backgroundColor: "#fff", borderRadius: radius.pill, paddingVertical: spacing.sm, paddingHorizontal: spacing.md },
+  sosBannerBtnText: { color: colors.red, fontFamily: fonts.displaySemi, fontSize: fontSize.base },
   scroll: { padding: spacing.lg, paddingBottom: spacing.xxxl, gap: spacing.md },
   prompt: { color: colors.textMuted, fontFamily: fonts.body, fontSize: fontSize.base, lineHeight: 20, textAlign: "center" },
   sosWrap: { alignItems: "center", marginVertical: spacing.sm },

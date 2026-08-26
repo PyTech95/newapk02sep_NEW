@@ -87,6 +87,11 @@ Build a native mobile app "NekSathi" (Expo + expo-router, TypeScript) that talks
 ## Implemented (2026-06 / feature update 8)
 - [x] **SOS Auto-Escalate**: SOS events start unacknowledged; `run_escalation()` (lazy, no cron — runs on GET /me/sos-events, GET /alerts, /me/location) alerts the next emergency contact every `SOS_ESCALATE_SECONDS` (default 120s) while unacknowledged, capped at the contact count, creating `sos_escalation` alerts naming each contact. New `POST /me/sos/{id}/ack` stops escalation; SOS history screen shows escalation status + an "I'm safe — stop escalation" button. Verified via API (level increments, named alerts, ack stops it, 404 on bad id).
 
+## Implemented (2026-06 / feature update 9)
+- [x] **Guardian Acknowledge**: `GET /family/sos` (active unacked SOS across family) + `POST /family/sos/{id}/ack` (any family member can acknowledge; notifies the owner). Family screen shows a red SOS banner per active alert with an "Acknowledge" button.
+- [x] **Escalation Timing**: per-user `escalate_seconds` (via `PUT /auth/me`); `run_escalation` respects it. Profile has a 1/3/5-minute selector.
+- [x] **Live SOS Banner**: Home shows a persistent red "SOS active" banner (with "I'm safe" ack button) whenever the user has an unacknowledged SOS. Verified on-screen.
+
 ## Backlog
 - P1: Native Device-Admin anti-theft module (remote lock/siren/intruder-selfie + shutdown-resistant tracking).
 - P1: Real reward payout — integrate a payment gateway (e.g. Razorpay) with escrow + release-on-return (needs backend support).

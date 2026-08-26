@@ -8,6 +8,7 @@ import { errMessage } from "@/src/api/client";
 import { updateMe } from "@/src/api/endpoints";
 import { NotifyPrefs } from "@/src/api/types";
 import { Field } from "@/src/components/Field";
+import { Chip } from "@/src/components/Chip";
 import { GlassCard } from "@/src/components/GlassCard";
 import { NeonButton } from "@/src/components/NeonButton";
 import { OverlayForm } from "@/src/components/OverlayForm";
@@ -60,6 +61,16 @@ export default function Profile() {
     } finally { setSavingPref(null); }
   };
 
+  const setEscalation = async (seconds: number) => {
+    try {
+      await updateMe({ escalate_seconds: seconds });
+      await refreshUser();
+      toast("Escalation delay updated", "success");
+    } catch (e) {
+      toast(errMessage(e, "Could not save"), "error");
+    }
+  };
+
   return (
     <View style={styles.root}>
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
@@ -100,6 +111,24 @@ export default function Profile() {
             ))}
           </GlassCard>
 
+          <Text style={styles.sectionTitle}>SOS escalation delay</Text>
+          <GlassCard style={styles.escCard} testID="escalation-card">
+            <Text style={styles.escHint}>How long to wait for an acknowledgement before alerting the next contact.</Text>
+            <View style={styles.escRow}>
+              {[{ m: 1, s: 60 }, { m: 3, s: 180 }, { m: 5, s: 300 }].map((o) => (
+                <Chip
+                  key={o.s}
+                  label={`${o.m} min`}
+                  color={colors.red}
+                  tintBg={tint.red}
+                  active={(user.escalate_seconds ?? 120) === o.s}
+                  onPress={() => setEscalation(o.s)}
+                  testID={`escalation-${o.m}`}
+                />
+              ))}
+            </View>
+          </GlassCard>
+
           <Text style={styles.sectionTitle}>Account</Text>
           <GlassCard style={styles.aboutCard}>
             <Text style={styles.brand}>Nek<Text style={{ color: colors.cyan }}>Sathi</Text></Text>
@@ -136,6 +165,9 @@ const styles = StyleSheet.create({
   prefLabel: { color: colors.text, fontFamily: fonts.displaySemi, fontSize: fontSize.base },
   prefSub: { color: colors.textDim, fontFamily: fonts.body, fontSize: fontSize.sm, marginTop: 1 },
   aboutCard: { alignItems: "center", gap: 4 },
+  escCard: { gap: spacing.md },
+  escHint: { color: colors.textDim, fontFamily: fonts.body, fontSize: fontSize.sm, lineHeight: 18 },
+  escRow: { flexDirection: "row", gap: spacing.sm },
   brand: { color: colors.text, fontFamily: fonts.display, fontSize: fontSize.xxl },
   tagline: { color: colors.textMuted, fontFamily: fonts.body, fontSize: fontSize.sm },
 });

@@ -8,8 +8,8 @@ import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { errMessage } from "@/src/api/client";
-import { createFamily, getFamily, joinFamily, listSafeZones } from "@/src/api/endpoints";
-import { FamilyMember, FamilyResponse, SafeZone } from "@/src/api/types";
+import { createFamily, familyAckSos, familySos, getFamily, joinFamily, listSafeZones } from "@/src/api/endpoints";
+import { FamilyMember, FamilyResponse, FamilySos, SafeZone } from "@/src/api/types";
 import { Chip } from "@/src/components/Chip";
 import { EmptyState } from "@/src/components/EmptyState";
 import { FamilyMap } from "@/src/components/FamilyMap";
@@ -35,6 +35,7 @@ export default function Family() {
   const insets = useSafeAreaInsets();
   const [data, setData] = useState<FamilyResponse | null>(null);
   const [zones, setZones] = useState<SafeZone[]>([]);
+  const [famSos, setFamSos] = useState<FamilySos[]>([]);
   const [loading, setLoading] = useState(true);
   const [mode, setMode] = useState<"create" | "join" | null>(null);
   const [text, setText] = useState("");
@@ -45,9 +46,10 @@ export default function Family() {
   const load = useCallback(async (spin = false) => {
     if (spin) setLoading(true);
     try {
-      const [fam, zn] = await Promise.all([getFamily(), listSafeZones()]);
+      const [fam, zn, fs] = await Promise.all([getFamily(), listSafeZones(), familySos().catch(() => [])]);
       setData(fam);
       setZones(zn);
+      setFamSos(fs);
     } catch (e) {
       toast(errMessage(e, "Could not load family"), "error");
     } finally {
@@ -90,6 +92,16 @@ export default function Family() {
   const copyCode = async (code: string) => {
     await Clipboard.setStringAsync(code);
     toast("Invite code copied", "success");
+  };
+
+  const ackFam = async (id: string) => {
+    try {
+      await familyAckSos(id);
+      toast("SOS acknowledged — they've been told help is coming", "success");
+      load(true);
+    } catch {
+      toast("Could not acknowledge", "error");
+    }
   };
 
   if (loading) {
@@ -152,6 +164,23 @@ export default function Family() {
         </GlassCard>
       </View>
 
+      {famSos.length > 0 && (
+        <View style={[styles.sosBanners, { top: insets.top + 74 }]} pointerEvents="box-none">
+          {famSos.map((s) => (
+            <View key={s.id} style={styles.sosBanner} testID={`family-sos-${s.id}`}>
+              <Feather name="alert-octagon" size={20} color="#fff" />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.sosBannerTitle}>{s.is_me ? "Your SOS is active" : `${s.owner_name} needs help`}</Text>
+                <Text style={styles.sosBannerSub}>Tap to acknowledge and stop escalation</Text>
+              </View>
+              <Pressable testID={`family-sos-ack-${s.id}`} onPress={() => ackFam(s.id)} style={styles.sosBannerBtn}>
+                <Text style={styles.sosBannerBtnText}>Acknowledge</Text>
+              </Pressable>
+            </View>
+          ))}
+        </View>
+      )}
+
       <BottomSheet
         ref={sheetRef}
         index={0}
@@ -198,6 +227,12 @@ const styles = StyleSheet.create({
   cancel: { alignItems: "center", paddingVertical: spacing.xs },
   cancelText: { color: colors.textDim, fontFamily: fonts.body, fontSize: fontSize.base },
   floatHeader: { position: "absolute", left: spacing.lg, right: spacing.lg },
+  sosBanners: { position: "absolute", left: spacing.lg, right: spacing.lg, gap: spacing.sm },
+  sosBanner: { flexDirection: "row", alignItems: "center", gap: spacing.sm, backgroundColor: colors.red, borderRadius: radius.md, padding: spacing.md },
+  sosBannerTitle: { color: "#fff", fontFamily: fonts.displaySemi, fontSize: fontSize.base },
+  sosBannerSub: { color: "rgba(255,255,255,0.85)", fontFamily: fonts.body, fontSize: fontSize.sm },
+  sosBannerBtn: { backgroundColor: "#fff", borderRadius: radius.pill, paddingVertical: 6, paddingHorizontal: spacing.md },
+  sosBannerBtnText: { color: colors.red, fontFamily: fonts.displaySemi, fontSize: fontSize.sm },
   headerCard: { flexDirection: "row", alignItems: "center", gap: spacing.sm, paddingVertical: spacing.md },
   familyName: { color: colors.text, fontFamily: fonts.display, fontSize: fontSize.xl },
   familySub: { color: colors.textMuted, fontFamily: fonts.body, fontSize: fontSize.sm },

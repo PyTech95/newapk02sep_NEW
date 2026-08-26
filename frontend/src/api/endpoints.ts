@@ -34,7 +34,7 @@ export const otpVerify = (phone: string, code: string, name?: string) =>
 
 export const getMe = () => api.get<User>("/auth/me").then((r) => r.data);
 
-export const updateMe = (payload: Partial<Pick<User, "name" | "phone">> & { notify_prefs?: Partial<User["notify_prefs"]> }) =>
+export const updateMe = (payload: Partial<Pick<User, "name" | "phone">> & { notify_prefs?: Partial<User["notify_prefs"]>; escalate_seconds?: number }) =>
   api.put<User>("/auth/me", payload).then((r) => r.data);
 
 // ---------- Personal Safety ----------
@@ -76,6 +76,18 @@ export const createFamily = (name: string) =>
 
 export const joinFamily = (invite_code: string) =>
   api.post("/family/join", { invite_code }).then((r) => r.data);
+
+export interface FamilySos {
+  id: string;
+  owner_name: string;
+  is_me: boolean;
+  latitude: number;
+  longitude: number;
+  created_at: string;
+  escalation_level?: number;
+}
+export const familySos = () => api.get<FamilySos[]>("/family/sos").then((r) => r.data);
+export const familyAckSos = (id: string) => api.post(`/family/sos/${id}/ack`, {}).then((r) => r.data);
 
 // ---------- Smart QR ----------
 export const listVehicles = () => api.get<Vehicle[]>("/vehicles").then((r) => r.data);

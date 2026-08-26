@@ -79,6 +79,7 @@ def user_public(u: dict) -> dict:
         "id": u["id"], "email": u["email"], "name": u.get("name", ""), "phone": u.get("phone", ""),
         "is_admin": u.get("is_admin", False), "is_dealer": False, "is_org": False,
         "suspended": False, "notify_prefs": u.get("notify_prefs", DEFAULT_PREFS),
+        "escalate_seconds": u.get("escalate_seconds", ESCALATE_AFTER),
         "avatar_base64": u.get("avatar_base64"),
     }
 
@@ -97,8 +98,10 @@ async def current_user(cred: Optional[HTTPAuthorizationCredentials] = Depends(be
 
 
 async def run_escalation(uid: str):
-    """Lazy SOS escalation: alert the next emergency contact every ESCALATE_AFTER
-    seconds while an SOS stays unacknowledged. No background job needed."""
+    """Lazy SOS escalation: alert the next emergency contact every N seconds
+    (per-user, default ESCALATE_AFTER) while an SOS stays unacknowledged."""
+    user = await db.users.find_one({"id": uid})
+    after = max(30, int((user or {}).get("escalate_seconds", ESCALATE_AFTER)))
     contacts = await db.contacts.find({"owner_id": uid}).to_list(50)
     if not contacts:
         return
@@ -111,7 +114,7 @@ async def run_escalation(uid: str):
             continue
         elapsed = (now - created).total_seconds()
         level = ev.get("escalation_level", 0)
-        target = min(len(contacts), int(elapsed // ESCALATE_AFTER))
+        target = min(len(contacts), int(elapsed // after))
         if target > level:
             for i in range(level, target):
                 c = contacts[i]
@@ -148,6 +151,7 @@ class MeUpdate(BaseModel):
     name: Optional[str] = None
     phone: Optional[str] = None
     notify_prefs: Optional[dict] = None
+    escalate_seconds: Optional[int] = None
 
 class SosIn(BaseModel):
     latitude: float
@@ -298,6 +302,8 @@ async def update_me(body: MeUpdate, u: dict = Depends(current_user)):
     if body.notify_prefs is not None:
         prefs = {**u.get("notify_prefs", DEFAULT_PREFS), **body.notify_prefs}
         upd["notify_prefs"] = prefs
+    if body.escalate_seconds is not None:
+        upd["escalate_seconds"] = max(30, int(body.escalate_seconds))
     if upd:
         await db.users.update_one({"id": u["id"]}, {"$set": upd})
         u = await db.users.find_one({"id": u["id"]})
@@ -450,6 +456,41 @@ async def join_family(body: JoinIn, u: dict = Depends(current_user)):
         raise HTTPException(400, "Family is full")
     await db.users.update_one({"id": u["id"]}, {"$set": {"family_id": fam["id"]}})
     return {"ok": True, "family_id": fam["id"]}
+
+
+@api.get("/family/sos")
+async def family_sos(u: dict = Depends(current_user)):
+    fid = u.get("family_id")
+    if not fid:
+        return []
+    members = await db.users.find({"family_id": fid}).to_list(50)
+    ids = [m["id"] for m in members]
+    names = {m["id"]: m.get("name", "Family member") for m in members}
+    rows = await db.sos.find({"owner_id": {"$in": ids}, "acknowledged": False}).sort("created_at", -1).to_list(50)
+    out = []
+    for r in rows:
+        c = clean(r)
+        c["owner_name"] = names.get(r["owner_id"], "Family member")
+        c["is_me"] = r["owner_id"] == u["id"]
+        out.append(c)
+    return out
+
+
+@api.post("/family/sos/{sid}/ack")
+async def family_ack(sid: str, u: dict = Depends(current_user)):
+    ev = await db.sos.find_one({"id": sid})
+    if not ev:
+        raise HTTPException(404, "SOS not found")
+    owner = await db.users.find_one({"id": ev["owner_id"]})
+    if not u.get("family_id") or not owner or owner.get("family_id") != u.get("family_id"):
+        raise HTTPException(403, "Not in the same family")
+    await db.sos.update_one({"id": sid}, {"$set": {"acknowledged": True, "acknowledged_by": u.get("name")}})
+    if ev["owner_id"] != u["id"]:
+        await db.alerts.insert_one({
+            "id": str(uuid.uuid4()), "owner_id": ev["owner_id"], "type": "sos_ack",
+            "message": f"{u.get('name')} acknowledged your SOS — help is coming", "created_at": now_iso(),
+        })
+    return {"ok": True}
 
 
 # ---------------- smart QR ----------------
