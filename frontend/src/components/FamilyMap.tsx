@@ -1,7 +1,7 @@
 import { Feather } from "@expo/vector-icons";
 import React from "react";
 import { StyleSheet, View } from "react-native";
-import MapView, { Circle, Marker } from "react-native-maps";
+import MapView, { Circle, Marker, Polyline } from "react-native-maps";
 
 import { FamilyMember, SafeZone } from "@/src/api/types";
 import { colors } from "@/src/theme";
@@ -41,6 +41,17 @@ export function FamilyMap({ members, zones = [] }: Props) {
           fillColor="rgba(34,211,238,0.12)"
         />
       ))}
+      {members.map((m) =>
+        m.trail && m.trail.length > 1 ? (
+          <Polyline
+            key={`trail-${m.member_id}`}
+            coordinates={m.trail}
+            strokeColor={m.is_me ? colors.cyan : colors.purple}
+            strokeWidth={3}
+            lineDashPattern={[1, 6]}
+          />
+        ) : null,
+      )}
       {located.map((m) => (
         <Marker
           key={m.member_id}

@@ -83,6 +83,7 @@ export interface FamilyMember {
   longitude: number | null;
   battery: number | null;
   last_seen: string | null;
+  trail?: { latitude: number; longitude: number }[];
 }
 
 export interface FamilyNone {

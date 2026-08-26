@@ -1,7 +1,7 @@
 import { Feather } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
-import { ActivityIndicator, Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { errMessage } from "@/src/api/client";
 import {
@@ -167,11 +167,13 @@ function SmartQr() {
   const [recoverFor, setRecoverFor] = useState<Tag | null>(null);
   const [recoverUpi, setRecoverUpi] = useState("");
   const [recoverAmount, setRecoverAmount] = useState("");
+  const [recoverPhone, setRecoverPhone] = useState("");
 
   const onRecover = (item: any) => {
     const m = String(item.reward_text || "").match(/₹\s*(\d+)/);
     setRecoverAmount(m ? m[1] : "");
     setRecoverUpi("");
+    setRecoverPhone("");
     setRecoverFor(item);
   };
 
@@ -180,6 +182,7 @@ function SmartQr() {
     setRecoverFor(null);
     const upi = recoverUpi.trim();
     const amt = recoverAmount.trim();
+    const phone = recoverPhone.trim();
     if (upi) {
       const link = `upi://pay?pa=${encodeURIComponent(upi)}&pn=NekSathi%20Finder${amt ? `&am=${amt}` : ""}&cu=INR&tn=${encodeURIComponent("NekSathi reward")}`;
       try {
@@ -192,7 +195,13 @@ function SmartQr() {
     }
     await applyLost(it, false);
     await addReceipt({ item: it.name, finderUpi: upi, amount: amt, paid: !!upi });
-    toast("Marked recovered — lost mode off", "success");
+    // Auto thank-you to the finder.
+    if (phone) {
+      const body = encodeURIComponent(`Thank you for returning my ${it.name}! ${amt ? `I've sent ₹${amt} as a reward. ` : ""}— via NekSathi`);
+      const sep = Platform.OS === "ios" ? "&" : "?";
+      Linking.openURL(`sms:${phone}${sep}body=${body}`).catch(() => {});
+    }
+    toast("Recovered — receipt saved" + (phone ? " & thank-you sent" : ""), "success");
   };
 
   const applyLost = async (item: any, enabled: boolean, reward?: string) => {
@@ -370,6 +379,7 @@ function SmartQr() {
         <Text style={styles.rewardHelp}>Enter the finder's UPI ID to open your UPI app and send the promised reward. Leave blank to just turn off lost mode.</Text>
         <Field label="FINDER'S UPI ID" icon="credit-card" placeholder="e.g. finder@upi" autoCapitalize="none" value={recoverUpi} onChangeText={setRecoverUpi} testID="recover-upi-input" />
         <Field label="AMOUNT (₹)" icon="gift" placeholder="e.g. 500" keyboardType="number-pad" value={recoverAmount} onChangeText={setRecoverAmount} testID="recover-amount-input" />
+        <Field label="FINDER'S PHONE (optional)" icon="phone" placeholder="Send an auto thank-you SMS" keyboardType="phone-pad" value={recoverPhone} onChangeText={setRecoverPhone} testID="recover-phone-input" />
       </OverlayForm>
     </ScrollView>
   );

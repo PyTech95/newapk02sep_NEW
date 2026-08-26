@@ -79,6 +79,11 @@ Build a native mobile app "NekSathi" (Expo + expo-router, TypeScript) that talks
 - [x] **Export Receipts**: share button on Recovery receipts exports the list + total via the OS share sheet.
 - Note: OTP returns `dev_code` in the response (no WhatsApp provider wired) — remove before production.
 
+## Implemented (2026-06 / feature update 7)
+- [x] **Seed Demo Data**: backend startup now idempotently seeds the demo account with a family ("Sharma Family") + 2 members (Aarav, Meera) with live positions & battery, emergency contacts, a Home safe zone, a vehicle, a tag and a device — so the app feels alive on first login.
+- [x] **Guardian Live Trail**: `/me/location` + `/me/sos` append to a `trails` collection; `GET /family` returns each member's last ~12 points as `trail`; `FamilyMap` draws a dashed Polyline per member (cyan = you, purple = others) in addition to the current pin. (Renders on device; web shows the fallback.)
+- [x] **Reward on Return+**: the Recovered flow now also takes the finder's phone and auto-opens an SMS thank-you (with reward confirmation) after paying via UPI and logging the receipt.
+
 ## Backlog
 - P1: Native Device-Admin anti-theft module (remote lock/siren/intruder-selfie + shutdown-resistant tracking).
 - P1: Real reward payout — integrate a payment gateway (e.g. Razorpay) with escrow + release-on-return (needs backend support).

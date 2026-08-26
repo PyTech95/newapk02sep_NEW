@@ -285,6 +285,7 @@ async def create_sos(body: SosIn, u: dict = Depends(current_user)):
     }
     await db.sos.insert_one(ev)
     await db.users.update_one({"id": u["id"]}, {"$set": {"last_lat": body.latitude, "last_lng": body.longitude, "last_seen": now_iso()}})
+    await db.trails.insert_one({"owner_id": u["id"], "latitude": body.latitude, "longitude": body.longitude, "ts": now_iso()})
     return clean(ev)
 
 
@@ -333,6 +334,7 @@ async def ping_location(body: LocationIn, u: dict = Depends(current_user)):
     await db.users.update_one({"id": u["id"]}, {"$set": {
         "last_lat": body.latitude, "last_lng": body.longitude, "last_battery": body.battery, "last_seen": now_iso(),
     }})
+    await db.trails.insert_one({"owner_id": u["id"], "latitude": body.latitude, "longitude": body.longitude, "ts": now_iso()})
     return {"ok": True, "transitions": []}
 
 
@@ -378,10 +380,16 @@ async def get_family(u: dict = Depends(current_user)):
     if not fam:
         return {"in_family": False}
     members = await db.users.find({"family_id": fid}).to_list(50)
+    out = []
+    for m in members:
+        mem = member_from_user(m, fam, u["id"])
+        tr = await db.trails.find({"owner_id": m["id"]}).sort("ts", -1).limit(12).to_list(12)
+        mem["trail"] = [{"latitude": t["latitude"], "longitude": t["longitude"]} for t in reversed(tr)]
+        out.append(mem)
     return {
         "in_family": True, "id": fam["id"], "name": fam["name"],
         "is_guardian": fam.get("owner_id") == u["id"], "invite_code": fam["invite_code"],
-        "max_members": 5, "members": [member_from_user(m, fam, u["id"]) for m in members],
+        "max_members": 5, "members": out,
     }
 
 
@@ -639,14 +647,67 @@ logging.basicConfig(level=logging.INFO)
 @app.on_event("startup")
 async def seed():
     demo_email = "demo@neksathi.app"
-    existing = await db.users.find_one({"email": demo_email})
-    if not existing:
-        await db.users.insert_one({
+    demo = await db.users.find_one({"email": demo_email})
+    if not demo:
+        demo = {
             "id": str(uuid.uuid4()), "email": demo_email, "name": "Demo User", "phone": "+919000000000",
             "password": hash_pw("demo1234"), "is_admin": False, "notify_prefs": dict(DEFAULT_PREFS),
             "avatar_base64": None, "created_at": now_iso(),
-        })
+        }
+        await db.users.insert_one(demo)
         logger.info("Seeded demo user %s", demo_email)
+
+    if demo.get("seeded"):
+        return
+
+    did = demo["id"]
+
+    def trail(base_lat, base_lng, n=8):
+        pts = []
+        for i in range(n):
+            pts.append({"owner_id": None, "latitude": base_lat + i * 0.0016, "longitude": base_lng + i * 0.0012,
+                        "ts": (datetime.now(timezone.utc) - timedelta(minutes=(n - i) * 6)).isoformat().replace("+00:00", "Z")})
+        return pts
+
+    # Family with the demo user as guardian + two sample members with live trails.
+    fam = {"id": str(uuid.uuid4()), "name": "Sharma Family", "owner_id": did, "invite_code": invite_code(), "created_at": now_iso()}
+    await db.families.insert_one(fam)
+    await db.users.update_one({"id": did}, {"$set": {"family_id": fam["id"], "last_lat": 19.0760, "last_lng": 72.8777, "last_battery": 82, "last_seen": now_iso()}})
+
+    demo_pts = trail(19.0760, 72.8777)
+    for p in demo_pts:
+        p["owner_id"] = did
+    await db.trails.insert_many(demo_pts)
+
+    members = [
+        {"name": "Aarav", "lat": 19.0896, "lng": 72.8656, "battery": 64},
+        {"name": "Meera", "lat": 19.0630, "lng": 72.8990, "battery": 27},
+    ]
+    for m in members:
+        mid = str(uuid.uuid4())
+        await db.users.insert_one({
+            "id": mid, "email": f"{m['name'].lower()}@demo.neksathi", "name": m["name"], "phone": "+9190000001",
+            "password": hash_pw(uuid.uuid4().hex), "is_admin": False, "notify_prefs": dict(DEFAULT_PREFS),
+            "avatar_base64": None, "family_id": fam["id"], "last_lat": m["lat"], "last_lng": m["lng"],
+            "last_battery": m["battery"], "last_seen": now_iso(), "created_at": now_iso(),
+        })
+        pts = trail(m["lat"] - 0.01, m["lng"] - 0.008)
+        for p in pts:
+            p["owner_id"] = mid
+        await db.trails.insert_many(pts)
+
+    # Emergency contacts, safe zone, a vehicle and a tag so the app feels alive.
+    await db.contacts.insert_many([
+        {"id": str(uuid.uuid4()), "owner_id": did, "name": "Priya (Sister)", "phone": "+919812345678", "relation": "Sister", "is_primary": True, "created_at": now_iso()},
+        {"id": str(uuid.uuid4()), "owner_id": did, "name": "Rahul (Friend)", "phone": "+919887654321", "relation": "Friend", "is_primary": False, "created_at": now_iso()},
+    ])
+    await db.zones.insert_one({"id": str(uuid.uuid4()), "owner_id": did, "name": "Home", "latitude": 19.0760, "longitude": 72.8777, "radius_m": 250, "notify": True, "last_inside": True, "created_at": now_iso()})
+    await db.vehicles.insert_one({"id": str(uuid.uuid4()), "owner_id": did, "number_plate": "MH01AB1234", "vehicle_type": "car", "make_model": "Hyundai Creta", "color": "White", "qr_id": qr_id(), "speed_limit_kmh": 80, "lost_mode": False, "created_at": now_iso()})
+    await db.tags.insert_one({"id": str(uuid.uuid4()), "owner_id": did, "name": "School Bag", "tag_type": "bag", "description": "Kids' school bag", "blood_group": None, "reward_text": None, "qr_id": qr_id(), "lost_mode": False, "created_at": now_iso()})
+    await db.devices.insert_one({"id": str(uuid.uuid4()), "owner_id": did, "name": "Pixel 8", "platform": "android", "lock_threshold": 3, "guardian_contact_id": None, "super_admin_alerts": True, "locked": False, "siren_active": False, "created_at": now_iso(), "last_seen": now_iso()})
+
+    await db.users.update_one({"id": did}, {"$set": {"seeded": True}})
+    logger.info("Seeded demo data for %s", demo_email)
 
 
 @app.on_event("shutdown")
