@@ -60,6 +60,14 @@ Build a native mobile app "NekSathi" (Expo + expo-router, TypeScript) that talks
 - **Native Anti-Theft Build (Device Admin)**: needs a bare/native Android module compiled into a real build — cannot be authored/compiled/tested in this managed preview. App-side controls (register device, report intruder/sim-swap, lock/siren polling) are already wired; OS enforcement is a dedicated native build.
 - **Real Reward Escrow (Razorpay)**: escrow + payout must live server-side on a backend I control. This app is a frontend for the user's EXTERNAL backend, so I can't add order/payout endpoints; also needs a Razorpay merchant account, KYC and keys. The reward *promise* (amount + UPI shown to finder) is implemented.
 
+## Implemented (2026-06 / feature update 4)
+- [x] **Scan Map View**: Scan History has a List/Map toggle (header icon); map plots each located scan (`src/components/ScanMap.tsx` + `.web.tsx` fallback), incident pins red, alert pins teal.
+- [x] **Reward on Return**: Lost tags show a "Recovered — pay the finder" action → enter finder's UPI + amount → opens the owner's UPI app via a `upi://pay` deep link to send the reward, then turns off lost mode. No gateway/backend needed (uses the device's UPI app).
+
+## Platform guidance (from support)
+- Emergent Mobile supports managed Expo + FastAPI + Mongo only — no bare/native workflow or custom native modules. Native Device-Admin anti-theft is out of scope here.
+- Server-side features (e.g. Razorpay escrow/payout) require the backend to be built inside an Emergent workspace; the agent can't modify the user's separate external backend.
+
 ## Backlog
 - P1: Native Device-Admin anti-theft module (remote lock/siren/intruder-selfie + shutdown-resistant tracking).
 - P1: Real reward payout — integrate a payment gateway (e.g. Razorpay) with escrow + release-on-return (needs backend support).

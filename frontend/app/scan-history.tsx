@@ -1,12 +1,13 @@
 import { Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { errMessage } from "@/src/api/client";
 import { listAlerts, listIncidents } from "@/src/api/endpoints";
 import { EmptyState } from "@/src/components/EmptyState";
 import { GlassCard } from "@/src/components/GlassCard";
+import { ScanMap } from "@/src/components/ScanMap";
 import { ScreenHeader } from "@/src/components/ScreenHeader";
 import { useToast } from "@/src/context/ToastContext";
 import { colors, fonts, fontSize, spacing, tint } from "@/src/theme";
@@ -51,6 +52,7 @@ export default function ScanHistory() {
   const router = useRouter();
   const toast = useToast();
   const [entries, setEntries] = useState<Entry[] | null>(null);
+  const [mode, setMode] = useState<"list" | "map">("list");
 
   useEffect(() => {
     (async () => {
@@ -92,14 +94,33 @@ export default function ScanHistory() {
     })();
   }, []);
 
+  const located = (entries ?? []).filter((e) => e.lat != null && e.lng != null);
+  const points = located.map((e) => ({ id: `${e.source}-${e.id}`, lat: e.lat!, lng: e.lng!, label: e.label, when: relTime(e.when), danger: e.source === "incident" }));
+
   return (
     <View style={styles.root}>
-      <ScreenHeader title="Scan history" subtitle="Who reached out via your QR" onBack={() => router.back()} accent={colors.teal} />
+      <ScreenHeader
+        title="Scan history"
+        subtitle="Who reached out via your QR"
+        onBack={() => router.back()}
+        accent={colors.teal}
+        right={
+          located.length > 0 ? (
+            <Pressable testID="scan-history-toggle" onPress={() => setMode((m) => (m === "list" ? "map" : "list"))} hitSlop={10}>
+              <Feather name={mode === "list" ? "map" : "list"} size={22} color={colors.teal} />
+            </Pressable>
+          ) : undefined
+        }
+      />
       {entries === null ? (
         <View style={styles.center}><ActivityIndicator color={colors.teal} /></View>
       ) : entries.length === 0 ? (
         <View style={styles.center}>
           <EmptyState icon="clock" color={colors.teal} title="No scans yet" subtitle="When someone scans your vehicle, tag or card, their report appears here with time and location." />
+        </View>
+      ) : mode === "map" ? (
+        <View style={{ flex: 1 }}>
+          <ScanMap points={points} />
         </View>
       ) : (
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>

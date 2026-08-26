@@ -1,7 +1,7 @@
 import { Feather } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { errMessage } from "@/src/api/client";
 import {
@@ -163,6 +163,35 @@ function SmartQr() {
   const [rewardText, setRewardText] = useState("");
   const [rewardAmount, setRewardAmount] = useState("");
   const [rewardUpi, setRewardUpi] = useState("");
+  const [recoverFor, setRecoverFor] = useState<Tag | null>(null);
+  const [recoverUpi, setRecoverUpi] = useState("");
+  const [recoverAmount, setRecoverAmount] = useState("");
+
+  const onRecover = (item: any) => {
+    const m = String(item.reward_text || "").match(/₹\s*(\d+)/);
+    setRecoverAmount(m ? m[1] : "");
+    setRecoverUpi("");
+    setRecoverFor(item);
+  };
+
+  const submitRecover = async () => {
+    const it = recoverFor!;
+    setRecoverFor(null);
+    const upi = recoverUpi.trim();
+    const amt = recoverAmount.trim();
+    if (upi) {
+      const link = `upi://pay?pa=${encodeURIComponent(upi)}&pn=NekSathi%20Finder${amt ? `&am=${amt}` : ""}&cu=INR&tn=${encodeURIComponent("NekSathi reward")}`;
+      try {
+        const ok = await Linking.canOpenURL(link);
+        if (ok) await Linking.openURL(link);
+        else toast("No UPI app found — pay the finder manually", "info");
+      } catch {
+        toast("Could not open a UPI app", "info");
+      }
+    }
+    await applyLost(it, false);
+    toast("Marked recovered — lost mode off", "success");
+  };
 
   const applyLost = async (item: any, enabled: boolean, reward?: string) => {
     setLostBusy(item.id);
@@ -268,6 +297,12 @@ function SmartQr() {
                   </Text>
                 </Pressable>
               )}
+              {isLost && kind === "tags" && (
+                <Pressable style={styles.recoverBtn} onPress={() => onRecover(item)} testID={`recover-${item.id}`}>
+                  <Feather name="check-circle" size={15} color={colors.green} />
+                  <Text style={[styles.lostText, { color: colors.green }]}>Recovered — pay the finder</Text>
+                </Pressable>
+              )}
             </GlassCard>
           );
         })
@@ -319,6 +354,21 @@ function SmartQr() {
         <Field label="YOUR UPI ID (optional)" icon="credit-card" placeholder="e.g. name@upi" autoCapitalize="none" value={rewardUpi} onChangeText={setRewardUpi} testID="reward-upi-input" />
         <Field label="NOTE (optional)" icon="edit-2" placeholder="e.g. Please call, kids' school bag" value={rewardText} onChangeText={setRewardText} testID="reward-input" />
       </OverlayForm>
+
+      <OverlayForm
+        visible={!!recoverFor}
+        title="Item recovered 🎉"
+        color={colors.green}
+        submitLabel={recoverUpi.trim() ? "Pay reward & close" : "Turn off lost mode"}
+        busy={lostBusy === recoverFor?.id}
+        onClose={() => setRecoverFor(null)}
+        onSubmit={submitRecover}
+        testID="recover-form"
+      >
+        <Text style={styles.rewardHelp}>Enter the finder's UPI ID to open your UPI app and send the promised reward. Leave blank to just turn off lost mode.</Text>
+        <Field label="FINDER'S UPI ID" icon="credit-card" placeholder="e.g. finder@upi" autoCapitalize="none" value={recoverUpi} onChangeText={setRecoverUpi} testID="recover-upi-input" />
+        <Field label="AMOUNT (₹)" icon="gift" placeholder="e.g. 500" keyboardType="number-pad" value={recoverAmount} onChangeText={setRecoverAmount} testID="recover-amount-input" />
+      </OverlayForm>
     </ScrollView>
   );
 }
@@ -345,6 +395,7 @@ const styles = StyleSheet.create({
   qrCard: { gap: spacing.sm },
   qrThumb: { width: 42, height: 42, borderRadius: 10, backgroundColor: tint.teal, alignItems: "center", justifyContent: "center" },
   lostToggle: { flexDirection: "row", alignItems: "center", gap: spacing.sm, alignSelf: "flex-start", paddingTop: spacing.xs, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border, width: "100%" },
+  recoverBtn: { flexDirection: "row", alignItems: "center", gap: spacing.sm, alignSelf: "flex-start" },
   lostText: { fontFamily: fonts.displaySemi, fontSize: fontSize.sm },
   reward: { color: colors.textMuted, fontFamily: fonts.body, fontSize: fontSize.sm },
   rewardHelp: { color: colors.textDim, fontFamily: fonts.body, fontSize: fontSize.sm, lineHeight: 18 },
