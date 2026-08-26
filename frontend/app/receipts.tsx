@@ -1,7 +1,7 @@
 import { Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, Share, StyleSheet, Text, View } from "react-native";
 
 import { EmptyState } from "@/src/components/EmptyState";
 import { GlassCard } from "@/src/components/GlassCard";
@@ -17,9 +17,33 @@ export default function Receipts() {
     getReceipts().then(setItems);
   }, []);
 
+  const onExport = async () => {
+    if (!items || items.length === 0) return;
+    const lines = items.map(
+      (r) => `• ${r.item} — ₹${r.amount || "0"} to ${r.finderUpi || "finder"} on ${new Date(r.date).toLocaleDateString()}`,
+    );
+    const total = items.reduce((s, r) => s + (parseInt(r.amount, 10) || 0), 0);
+    await Share.share({
+      title: "NekSathi recovery receipts",
+      message: `NekSathi — Recovery Receipts\n\n${lines.join("\n")}\n\nTotal rewards paid: ₹${total}`,
+    });
+  };
+
   return (
     <View style={styles.root}>
-      <ScreenHeader title="Recovery receipts" subtitle="Rewards you've paid" onBack={() => router.back()} accent={colors.green} />
+      <ScreenHeader
+        title="Recovery receipts"
+        subtitle="Rewards you've paid"
+        onBack={() => router.back()}
+        accent={colors.green}
+        right={
+          items && items.length > 0 ? (
+            <Pressable testID="receipts-export-button" onPress={onExport} hitSlop={10}>
+              <Feather name="share" size={22} color={colors.green} />
+            </Pressable>
+          ) : undefined
+        }
+      />
       {items === null ? null : items.length === 0 ? (
         <View style={styles.center}>
           <EmptyState icon="award" color={colors.green} title="No receipts yet" subtitle="When you recover a lost item and pay the finder, a receipt is saved here." />

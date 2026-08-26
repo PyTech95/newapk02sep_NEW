@@ -1,7 +1,7 @@
 import { Feather } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 
@@ -13,6 +13,7 @@ import { SOSButton } from "@/src/components/SOSButton";
 import { SosCountdown } from "@/src/components/SosCountdown";
 import { useAuth } from "@/src/context/AuthContext";
 import { useToast } from "@/src/context/ToastContext";
+import { fetchScanCount, getSeenCount } from "@/src/services/scanBadge";
 import { colors, fonts, fontSize, radius, spacing, tint } from "@/src/theme";
 import { requestLocation } from "@/src/utils/location";
 
@@ -30,6 +31,18 @@ export default function Home() {
   };
   const [blocked, setBlocked] = useState(false);
   const [stats, setStats] = useState({ sos: 0, contacts: 0, zones: 0 });
+  const [hasNew, setHasNew] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    const check = async () => {
+      const [c, seen] = await Promise.all([fetchScanCount(), getSeenCount()]);
+      if (active) setHasNew(c > seen);
+    };
+    check();
+    const id = setInterval(check, 30000);
+    return () => { active = false; clearInterval(id); };
+  }, []);
 
   const loadStats = useCallback(() => {
     Promise.all([listSosEvents(), listContacts(), listSafeZones()])
@@ -92,6 +105,7 @@ export default function Home() {
             </Pressable>
             <Pressable testID="home-alerts-button" onPress={() => router.push("/alerts")} hitSlop={10}>
               <Feather name="bell" size={22} color={colors.text} />
+              {hasNew && <View style={styles.bellDot} testID="home-scan-badge" />}
             </Pressable>
           </View>
         }
@@ -181,6 +195,7 @@ function ActionRow({ icon, color, title, sub, onPress, testID }: { icon: keyof t
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
+  bellDot: { position: "absolute", top: -2, right: -2, width: 9, height: 9, borderRadius: 5, backgroundColor: colors.red, borderWidth: 1.5, borderColor: colors.bg },
   scroll: { padding: spacing.lg, paddingBottom: spacing.xxxl, gap: spacing.md },
   prompt: { color: colors.textMuted, fontFamily: fonts.body, fontSize: fontSize.base, lineHeight: 20, textAlign: "center" },
   sosWrap: { alignItems: "center", marginVertical: spacing.sm },

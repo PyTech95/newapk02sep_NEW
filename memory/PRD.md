@@ -72,6 +72,13 @@ Build a native mobile app "NekSathi" (Expo + expo-router, TypeScript) that talks
 - [x] **Scan Alert Badge**: `src/services/scanBadge.ts` + TabBar — polls incidents+alerts count every 30s and shows a red dot on the Security tab when new scans arrive since last viewed; cleared when the Security tab is opened.
 - [x] **Recovery Receipt**: `src/services/receipts.ts` + `app/receipts.tsx` — every reward paid on recovery is logged on-device (item, finder UPI, amount, date, paid/logged status). Entry: Safety → Recovery receipts.
 
+## MAJOR: Backend migrated in-workspace (2026-06 / update 6)
+- [x] **Rebuilt the NekSathi API inside this workspace** — `/app/backend/server.py` (FastAPI + MongoDB + JWT/bcrypt), all /api endpoints the app uses: auth (login/register/OTP-with-dev-code/me/update), personal safety (SOS+history, contacts, live-share, location, safe-zones), family (create/join/members), Smart QR (vehicles/tags/cards CRUD + PUT + lost_mode + public resolvers), public scan/report (incident/tag-alert/card-message → owner alerts/incidents), devices (lock/siren/intruder/sim-swap). Demo user seeded on startup (demo@neksathi.app / demo1234). App now points `EXPO_PUBLIC_API_URL` at this workspace — no external dependency.
+- [x] Verified: **21/21 backend tests + all frontend flows pass** (testing agent iteration_2), full FE↔BE data flow confirmed.
+- [x] **Badge Everywhere**: new-scan red dot now also on the Home bell (mirrors Security tab).
+- [x] **Export Receipts**: share button on Recovery receipts exports the list + total via the OS share sheet.
+- Note: OTP returns `dev_code` in the response (no WhatsApp provider wired) — remove before production.
+
 ## Backlog
 - P1: Native Device-Admin anti-theft module (remote lock/siren/intruder-selfie + shutdown-resistant tracking).
 - P1: Real reward payout — integrate a payment gateway (e.g. Razorpay) with escrow + release-on-return (needs backend support).
