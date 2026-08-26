@@ -86,9 +86,14 @@ export default function Home() {
         title={`Hi, ${user?.name?.split(" ")[0] ?? "there"}`}
         subtitle="You're protected"
         right={
-          <Pressable testID="home-alerts-button" onPress={() => router.push("/alerts")} hitSlop={10}>
-            <Feather name="bell" size={22} color={colors.text} />
-          </Pressable>
+          <View style={{ flexDirection: "row", gap: 18 }}>
+            <Pressable testID="home-scan-button" onPress={() => router.push("/scan")} hitSlop={10}>
+              <Feather name="maximize" size={22} color={colors.teal} />
+            </Pressable>
+            <Pressable testID="home-alerts-button" onPress={() => router.push("/alerts")} hitSlop={10}>
+              <Feather name="bell" size={22} color={colors.text} />
+            </Pressable>
+          </View>
         }
       />
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>

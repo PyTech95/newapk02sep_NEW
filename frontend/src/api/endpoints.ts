@@ -117,3 +117,45 @@ export const reportSimSwap = (id: string) =>
 
 // scan URL that a QR should encode
 export const scanUrl = (qrId: string) => `${process.env.EXPO_PUBLIC_API_URL}/scan/${qrId}`;
+
+// ---------- Public scan / report (finder flow, no ownership required) ----------
+export interface ResolvedItem {
+  kind?: string;
+  number_plate?: string;
+  vehicle_type?: string;
+  name?: string;
+  tag_type?: string;
+  display_name?: string;
+  title?: string;
+  phone?: string | null;
+  reward_text?: string | null;
+  lost_mode?: boolean;
+  [k: string]: unknown;
+}
+export interface ScanReportPayload {
+  type?: string;
+  scanner_note?: string | null;
+  scanner_phone?: string | null;
+  scanner_lat?: number | null;
+  scanner_lng?: number | null;
+}
+
+export const resolveQr = (qrId: string) =>
+  api.get<ResolvedItem>(`/public/qr/${qrId}`).then((r) => r.data);
+export const resolveCard = (qrId: string) =>
+  api.get<ResolvedItem>(`/public/card/${qrId}`).then((r) => r.data);
+export const reportIncident = (qrId: string, payload: ScanReportPayload) =>
+  api.post(`/public/qr/${qrId}/incident`, payload).then((r) => r.data);
+export const alertTag = (qrId: string, payload: ScanReportPayload) =>
+  api.post(`/public/tag/${qrId}/alert`, payload).then((r) => r.data);
+export const messageCard = (qrId: string, payload: { name?: string; phone?: string; message?: string }) =>
+  api.post(`/public/card/${qrId}/message`, payload).then((r) => r.data);
+
+// pull a bare qr id out of a scanned value (URL or raw id)
+export const parseQrValue = (value: string): string => {
+  const trimmed = value.trim();
+  const marker = "/scan/";
+  const idx = trimmed.indexOf(marker);
+  if (idx >= 0) return trimmed.slice(idx + marker.length).split(/[/?#]/)[0];
+  return trimmed.split(/[/?#]/).pop() || trimmed;
+};

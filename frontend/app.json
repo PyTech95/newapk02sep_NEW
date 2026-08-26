@@ -14,7 +14,10 @@
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Share your live location during an SOS",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "Keep family updated with your location",
-        "UIBackgroundModes": ["location"]
+        "NSCameraUsageDescription": "Scan a NekSathi QR to help return a lost item",
+        "UIBackgroundModes": [
+          "location"
+        ]
       }
     },
     "android": {
@@ -29,7 +32,8 @@
         "ACCESS_COARSE_LOCATION",
         "ACCESS_BACKGROUND_LOCATION",
         "FOREGROUND_SERVICE",
-        "FOREGROUND_SERVICE_LOCATION"
+        "FOREGROUND_SERVICE_LOCATION",
+        "CAMERA"
       ]
     },
     "web": {
@@ -56,7 +60,14 @@
           "isAndroidBackgroundLocationEnabled": true,
           "isAndroidForegroundServiceEnabled": true
         }
-      ]
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Scan a NekSathi QR to help return a lost item"
+        }
+      ],
+      "@react-native-community/datetimepicker"
     ],
     "experiments": {
       "typedRoutes": true

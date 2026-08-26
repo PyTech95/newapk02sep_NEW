@@ -151,6 +151,8 @@ function SmartQr() {
   const [lostBusy, setLostBusy] = useState<string | null>(null);
   const [rewardFor, setRewardFor] = useState<Tag | null>(null);
   const [rewardText, setRewardText] = useState("");
+  const [rewardAmount, setRewardAmount] = useState("");
+  const [rewardUpi, setRewardUpi] = useState("");
 
   const applyLost = async (item: any, enabled: boolean, reward?: string) => {
     setLostBusy(item.id);
@@ -178,7 +180,9 @@ function SmartQr() {
       return;
     }
     if (kind === "tags") {
-      setRewardText(item.reward_text || "");
+      setRewardText("");
+      setRewardAmount("");
+      setRewardUpi("");
       setRewardFor(item);
     } else {
       applyLost(item, true);
@@ -289,11 +293,21 @@ function SmartQr() {
         submitLabel="Activate Lost Mode"
         busy={lostBusy === rewardFor?.id}
         onClose={() => setRewardFor(null)}
-        onSubmit={() => { const it = rewardFor!; setRewardFor(null); applyLost(it, true, rewardText); }}
+        onSubmit={() => {
+          const it = rewardFor!;
+          setRewardFor(null);
+          const parts: string[] = [];
+          if (rewardAmount.trim()) parts.push(`₹${rewardAmount.trim()} reward on safe return`);
+          if (rewardUpi.trim()) parts.push(`Pay via UPI: ${rewardUpi.trim()}`);
+          if (rewardText.trim()) parts.push(rewardText.trim());
+          applyLost(it, true, parts.join(" · "));
+        }}
         testID="reward-form"
       >
-        <Text style={styles.rewardHelp}>Anyone who scans this tag will see your reward note and can reach you privately — no personal details exposed.</Text>
-        <Field label="REWARD NOTE (optional)" icon="gift" placeholder="e.g. Reward ₹500 if found" value={rewardText} onChangeText={setRewardText} testID="reward-input" />
+        <Text style={styles.rewardHelp}>Promise a reward to whoever returns your item. The finder sees your offer and UPI when they scan — your phone number stays private.</Text>
+        <Field label="REWARD AMOUNT (₹)" icon="gift" placeholder="e.g. 500" keyboardType="number-pad" value={rewardAmount} onChangeText={setRewardAmount} testID="reward-amount-input" />
+        <Field label="YOUR UPI ID (optional)" icon="credit-card" placeholder="e.g. name@upi" autoCapitalize="none" value={rewardUpi} onChangeText={setRewardUpi} testID="reward-upi-input" />
+        <Field label="NOTE (optional)" icon="edit-2" placeholder="e.g. Please call, kids' school bag" value={rewardText} onChangeText={setRewardText} testID="reward-input" />
       </OverlayForm>
     </ScrollView>
   );

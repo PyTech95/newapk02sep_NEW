@@ -1,7 +1,7 @@
 import { Feather } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
-import { Linking, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
+import { Linking, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View, AppState } from "react-native";
 
 import { errMessage } from "@/src/api/client";
 import { listContacts, listSafeZones, listSosEvents, startLiveShare } from "@/src/api/endpoints";
@@ -9,6 +9,7 @@ import { GlassCard } from "@/src/components/GlassCard";
 import { ScreenHeader } from "@/src/components/ScreenHeader";
 import { useToast } from "@/src/context/ToastContext";
 import { isGuardianRunning, startGuardian, stopGuardian } from "@/src/services/backgroundLocation";
+import { getSchedule, minutesToLabel, reconcileSchedule, type GuardianSchedule } from "@/src/services/guardianSchedule";
 import { colors, fonts, fontSize, spacing, tint } from "@/src/theme";
 import { requestLocation } from "@/src/utils/location";
 
@@ -19,10 +20,19 @@ export default function Safety() {
   const [sharing, setSharing] = useState(false);
   const [guardian, setGuardian] = useState(false);
   const [guardianBusy, setGuardianBusy] = useState(false);
+  const [sched, setSched] = useState<GuardianSchedule | null>(null);
+
+  const syncGuardian = useCallback(async () => {
+    await reconcileSchedule();
+    setGuardian(await isGuardianRunning());
+    setSched(await getSchedule());
+  }, []);
 
   useEffect(() => {
-    isGuardianRunning().then(setGuardian);
-  }, []);
+    syncGuardian();
+    const sub = AppState.addEventListener("change", (st) => { if (st === "active") syncGuardian(); });
+    return () => sub.remove();
+  }, [syncGuardian]);
 
   const onGuardian = async (value: boolean) => {
     setGuardianBusy(true);
@@ -53,7 +63,7 @@ export default function Safety() {
       .catch(() => {});
   }, []);
 
-  useFocusEffect(useCallback(() => { load(); }, [load]));
+  useFocusEffect(useCallback(() => { load(); syncGuardian(); }, [load, syncGuardian]));
 
   const onLiveShare = async () => {
     setSharing(true);
@@ -108,10 +118,26 @@ export default function Safety() {
           />
         </GlassCard>
 
+        <Pressable onPress={() => router.push("/guardian-schedule")} testID="safety-schedule">
+          <GlassCard style={styles.tool}>
+            <View style={[styles.bubble, { backgroundColor: tint.purple }]}>
+              <Feather name="clock" size={20} color={colors.purple} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.toolTitle}>Guardian schedule</Text>
+              <Text style={styles.toolSub}>
+                {sched?.enabled ? `Auto ${minutesToLabel(sched.start)} – ${minutesToLabel(sched.end)}` : "Auto-enable during set hours"}
+              </Text>
+            </View>
+            <Feather name="chevron-right" size={20} color={colors.textDim} />
+          </GlassCard>
+        </Pressable>
+
         <Tool icon="users" color={colors.purple} title="Emergency contacts" sub={`${counts.contacts} trusted contact(s)`} onPress={() => router.push("/contacts")} testID="safety-contacts" />
         <Tool icon="map-pin" color={colors.teal} title="Safe zones" sub={`${counts.zones} zone(s) monitored`} onPress={() => router.push("/safe-zones")} testID="safety-zones" />
         <Tool icon="clock" color={colors.cyan} title="SOS history" sub={`${counts.sos} past alert(s)`} onPress={() => router.push("/sos-events")} testID="safety-history" />
         <Tool icon="bell" color={colors.amber} title="Alerts & incidents" sub="Notifications and reports" onPress={() => router.push("/alerts")} testID="safety-alerts" />
+        <Tool icon="maximize" color={colors.teal} title="Scan a found item" sub="Help return someone's lost bag or vehicle" onPress={() => router.push("/scan")} testID="safety-scan" />
       </ScrollView>
     </View>
   );

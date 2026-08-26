@@ -47,8 +47,18 @@ Build a native mobile app "NekSathi" (Expo + expo-router, TypeScript) that talks
 - [x] **Lost Mode Toggle**: Vehicles & Tags can be flipped to Lost Mode (`POST /{tags|vehicles}/{id}/lost_mode`); tags support a reward note (`PUT /tags/{id}`) shown to whoever scans. Red LOST badge + reward on the row. (Security → Smart QR)
 - [x] **Background Guardian**: Safety toggle starts a 60s foreground-service location ping (`POST /me/location` with battery) via expo-task-manager + expo-location background updates — keeps family's live trail even when app is closed. Native-build only (not Expo Go/web). (`src/services/backgroundLocation.ts`, Safety)
 
+## Implemented (2026-06 / feature update 2)
+- [x] **In-App QR Scanner**: `expo-camera` scanner (`app/scan.tsx`) with full permission handling → resolves the QR (`GET /public/qr/{id}`, fallback `GET /public/card/{id}`) and opens a finder report screen (`app/scan-report.tsx`). Vehicles → incident report (`POST /public/qr/{id}/incident` wrong_parking/accident/theft/other), Tags → found/theft alert (`POST /public/tag/{id}/alert`), Cards → private message (`POST /public/card/{id}/message`). Attaches finder geo; owner's number stays private. Entry points: Home header + Safety tool.
+- [x] **Guardian Schedule**: `app/guardian-schedule.tsx` + `src/services/guardianSchedule.ts` — daily on/off window (time pickers + day chips), persisted; reconciled on app-active/Safety focus so Guardian auto-starts/stops within the window.
+- [x] **Reward Payout (promise)**: Lost Mode form now captures a reward amount + UPI ID + note, composed into the tag's `reward_text`, shown to whoever scans. (Actual escrow/auto-release requires a payment gateway on the backend — see backlog.)
+
+## Not built (platform limits — explained to user)
+- **Fake Shutdown Guard**: Intercepting power-off / surviving shutdown needs OS-level control + a custom Android Device-Admin native module; not possible in Expo/React Native app JS. Belongs to a dedicated native anti-theft build.
+
 ## Backlog
-- P1: Anti-theft native Device-Admin module (lock/siren/intruder capture).
+- P1: Native Device-Admin anti-theft module (remote lock/siren/intruder-selfie + shutdown-resistant tracking).
+- P1: Real reward payout — integrate a payment gateway (e.g. Razorpay) with escrow + release-on-return (needs backend support).
+- Note: external backend at neksathi-deploy was returning 404 during this build session; live scan/report verification is pending its recovery (all calls match the confirmed contract).
 - P2: Richer QR item editing (photos, lost-mode toggle, ICE medical fields).
 - P2: Map clustering + tap-to-focus a member; safe-zone drawing on map.
 - P2: In-app scan flow (camera) to report a found item.
