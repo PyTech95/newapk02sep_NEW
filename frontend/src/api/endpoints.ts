@@ -1,0 +1,111 @@
+import { api } from "./client";
+import {
+  AlertItem,
+  AuthResponse,
+  Card,
+  Device,
+  EmergencyContact,
+  FamilyActive,
+  FamilyResponse,
+  Incident,
+  LiveShare,
+  SafeZone,
+  SosEvent,
+  Tag,
+  User,
+  Vehicle,
+} from "./types";
+
+// ---------- Auth ----------
+export const login = (email: string, password: string) =>
+  api.post<AuthResponse>("/auth/login", { email, password }).then((r) => r.data);
+
+export const register = (name: string, email: string, phone: string, password: string) =>
+  api.post<AuthResponse>("/auth/register", { name, email, phone, password }).then((r) => r.data);
+
+export const otpRequest = (phone: string) =>
+  api.post<{ ok: boolean; channel: string; dev_code: string | null; live: boolean }>(
+    "/auth/otp/request",
+    { phone },
+  ).then((r) => r.data);
+
+export const otpVerify = (phone: string, code: string, name?: string) =>
+  api.post<AuthResponse>("/auth/otp/verify", { phone, code, name }).then((r) => r.data);
+
+export const getMe = () => api.get<User>("/auth/me").then((r) => r.data);
+
+export const updateMe = (payload: Partial<Pick<User, "name" | "phone">> & { notify_prefs?: Partial<User["notify_prefs"]> }) =>
+  api.put<User>("/auth/me", payload).then((r) => r.data);
+
+// ---------- Personal Safety ----------
+export const triggerSos = (latitude: number, longitude: number, message?: string) =>
+  api.post<SosEvent>("/me/sos", { latitude, longitude, message }).then((r) => r.data);
+
+export const listSosEvents = () => api.get<SosEvent[]>("/me/sos-events").then((r) => r.data);
+
+export const listContacts = () =>
+  api.get<EmergencyContact[]>("/me/emergency-contacts").then((r) => r.data);
+
+export const addContact = (name: string, phone: string, relation?: string) =>
+  api.post<EmergencyContact>("/me/emergency-contacts", { name, phone, relation }).then((r) => r.data);
+
+export const deleteContact = (id: string) =>
+  api.delete(`/me/emergency-contacts/${id}`).then((r) => r.data);
+
+export const startLiveShare = (duration_minutes: number) =>
+  api.post<LiveShare>("/me/live-share", { duration_minutes }).then((r) => r.data);
+
+export const pingLocation = (latitude: number, longitude: number, battery?: number) =>
+  api.post("/me/location", { latitude, longitude, battery }).then((r) => r.data);
+
+// ---------- Safe Zones ----------
+export const listSafeZones = () => api.get<SafeZone[]>("/me/safe-zones").then((r) => r.data);
+
+export const addSafeZone = (name: string, latitude: number, longitude: number, radius_m: number) =>
+  api.post<SafeZone>("/me/safe-zones", { name, latitude, longitude, radius_m }).then((r) => r.data);
+
+export const deleteSafeZone = (id: string) =>
+  api.delete(`/me/safe-zones/${id}`).then((r) => r.data);
+
+// ---------- Family ----------
+export const getFamily = () => api.get<FamilyResponse>("/family").then((r) => r.data);
+
+export const createFamily = (name: string) =>
+  api.post<FamilyActive>("/family", { name }).then((r) => r.data);
+
+export const joinFamily = (invite_code: string) =>
+  api.post("/family/join", { invite_code }).then((r) => r.data);
+
+// ---------- Smart QR ----------
+export const listVehicles = () => api.get<Vehicle[]>("/vehicles").then((r) => r.data);
+export const addVehicle = (number_plate: string, vehicle_type: string, make_model?: string) =>
+  api.post<Vehicle>("/vehicles", { number_plate, vehicle_type, make_model }).then((r) => r.data);
+
+export const listTags = () => api.get<Tag[]>("/tags").then((r) => r.data);
+export const addTag = (name: string, tag_type: string) =>
+  api.post<Tag>("/tags", { name, tag_type }).then((r) => r.data);
+
+export const listCards = () => api.get<Card[]>("/cards").then((r) => r.data);
+export const addCard = (display_name: string, title?: string, phone?: string) =>
+  api.post<Card>("/cards", { display_name, title, phone }).then((r) => r.data);
+
+// ---------- Alerts & Incidents ----------
+export const listAlerts = () => api.get<AlertItem[]>("/alerts").then((r) => r.data);
+export const listIncidents = () =>
+  api.get<{ count: number; results: Incident[] }>("/incidents").then((r) => r.data);
+
+// ---------- Anti-theft devices ----------
+export const listDevices = () => api.get<Device[]>("/devices").then((r) => r.data);
+export const addDevice = (name: string, platform: string, model?: string) =>
+  api.post<Device>("/devices", { name, platform, model }).then((r) => r.data);
+export const lockState = (id: string) =>
+  api.get<{ locked: boolean; lock_threshold: number }>(`/devices/${id}/lock-state`).then((r) => r.data);
+export const sirenState = (id: string) =>
+  api.get<{ siren_active: boolean }>(`/devices/${id}/siren-state`).then((r) => r.data);
+export const reportIntruder = (id: string) =>
+  api.post(`/devices/${id}/intruder`, {}).then((r) => r.data);
+export const reportSimSwap = (id: string) =>
+  api.post(`/devices/${id}/sim-swap`, {}).then((r) => r.data);
+
+// scan URL that a QR should encode
+export const scanUrl = (qrId: string) => `${process.env.EXPO_PUBLIC_API_URL}/scan/${qrId}`;

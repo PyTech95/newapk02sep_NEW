@@ -1,0 +1,164 @@
+{
+  "app_name": "NekSathi",
+  "personality": "7 Dark-First Utility fused with Glassmorphic Neon accents",
+  "personality_one_liner": "A dark, neon-accented, glassmorphic safety command center that feels instantly responsive and highly secure.",
+  "color": {
+    "surface": "#06060f",
+    "onSurface": "#ffffff",
+    "surfaceSecondary": "#0d0d1a",
+    "onSurfaceSecondary": "#d9c9ff",
+    "surfaceTertiary": "#1a1a2e",
+    "onSurfaceTertiary": "#a3a3c2",
+    "surfaceInverse": "#ffffff",
+    "onSurfaceInverse": "#06060f",
+    "brand": "#22d3ee",
+    "brandPrimary": "#22d3ee",
+    "onBrandPrimary": "#000000",
+    "brandSecondary": "#8b5cf6",
+    "onBrandSecondary": "#ffffff",
+    "brandTertiary": "#2dd4bf",
+    "onBrandTertiary": "#000000",
+    "success": "#34d399",
+    "onSuccess": "#000000",
+    "warning": "#fbbf24",
+    "onWarning": "#000000",
+    "error": "#ff3b5c",
+    "onError": "#ffffff",
+    "border": "#2a2a40",
+    "borderStrong": "#22d3ee",
+    "divider": "#1a1a2e"
+  },
+  "typography": {
+    "displayFontFamily": "Chakra Petch",
+    "textFontFamily": "Outfit",
+    "scale": {
+      "sm": 12,
+      "base": 14,
+      "lg": 16,
+      "xl": 20,
+      "2xl": 24
+    }
+  },
+  "spacing": {
+    "rule": "Generous spacing on glass cards, tight grouping on metrics.",
+    "xs": 4,
+    "sm": 8,
+    "md": 12,
+    "lg": 16,
+    "xl": 24,
+    "2xl": 32,
+    "3xl": 48
+  },
+  "radius_tokens": {
+    "sm": 8,
+    "md": 16,
+    "lg": 24,
+    "pill": 999
+  },
+  "shadow_tier": "2",
+  "navigation": "bottom_tabs",
+  "icon_set": "Feather",
+  "glassmorphism": {
+    "enabled": true,
+    "do's": [
+      "Use on bottom tabs, floating header, cards over map, auth cards"
+    ],
+    "dont's": [
+      "Don't use on standard text inputs or dense lists"
+    ]
+  },
+  "platform_libraries": {
+    "glass": {
+      "ios": "expo-glass-effect",
+      "android": "expo-blur",
+      "low_end_android_fallback": "solid surfaceSecondary"
+    },
+    "image": "expo-image",
+    "blur": "expo-blur",
+    "bottom_sheet": "@gorhom/bottom-sheet",
+    "animation": "react-native-reanimated",
+    "gesture": "react-native-gesture-handler"
+  },
+  "screens": [
+    {
+      "name": "Auth",
+      "purpose": "Login, register, and OTP verification",
+      "states": {
+        "loading": "Neon spinner",
+        "empty": "n/a",
+        "error": "Neon red toast"
+      },
+      "layout": "Full screen abstract dark neon background image. A centered glassmorphic card (surfaceSecondary + blur) contains inputs and Primary cyan CTA button. Typography uses Chakra Petch for headings."
+    },
+    {
+      "name": "Home",
+      "purpose": "Quick access to SOS and top-level stats",
+      "states": {
+        "loading": "Skeleton of big button",
+        "empty": "n/a",
+        "error": "Error loading stats"
+      },
+      "layout": "Header with user greeting. Center of screen: Huge circular pulsing red SOS button (shadow/glow effects using Reanimated). Below button: Glass grid cards for quick stats (Alerts, Active Safe Zones)."
+    },
+    {
+      "name": "Family",
+      "purpose": "Live map of family members",
+      "states": {
+        "loading": "Map skeleton",
+        "empty": "No family members - prompt to join via code",
+        "error": "Failed to load map"
+      },
+      "layout": "Full-bleed react-native-maps. Top floating glass header for map controls. Bottom sheet (@gorhom/bottom-sheet) displaying list of members (name, battery icon, last-seen, purple accent)."
+    },
+    {
+      "name": "Security",
+      "purpose": "Manage Anti-theft devices and Smart QR tags",
+      "states": {
+        "loading": "List skeletons",
+        "empty": "No devices or tags found",
+        "error": "Error loading assets"
+      },
+      "layout": "Segmented control at top (Anti-theft / Smart QR). Anti-theft: Lock/Siren toggle cards (red accent). QR: List of tags/vehicles with mini QR thumbnail (teal accent)."
+    },
+    {
+      "name": "Profile",
+      "purpose": "User settings, alerts feed, logout",
+      "states": {
+        "loading": "List skeletons",
+        "empty": "No alerts",
+        "error": "Error loading profile"
+      },
+      "layout": "Cover banner at top. User details. Standard list rows (surfaceSecondary, margin md) for notification settings, emergency contacts CRUD, logout."
+    }
+  ],
+  "images": {
+    "auth_background": {
+      "url": "https://images.unsplash.com/photo-1626908013351-800ddd734b8a?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzNzl8MHwxfHNlYXJjaHwxfHxkYXJrJTIwbmVvbiUyMGN5YmVyc2VjdXJpdHklMjBhYnN0cmFjdCUyMGJhY2tncm91bmR8ZW58MHx8fHwxNzg3NzM3MDMyfDA&ixlib=rb-4.1.0&q=85",
+      "alt": "Abstract neon cybersecurity background"
+    },
+    "map_fallback": {
+      "url": "https://images.pexels.com/photos/8828418/pexels-photo-8828418.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+      "alt": "World map pin"
+    },
+    "security_header": {
+      "url": "https://images.unsplash.com/photo-1628763228722-b11a9c545ed7?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1NzZ8MHwxfHNlYXJjaHwxfHxjeWJlcnNlY3VyaXR5JTIwbG9jayUyMG5lb24lMjBkYXJrfGVufDB8fHx8MTc4NzczNzA0Mnww&ixlib=rb-4.1.0&q=85",
+      "alt": "Cybersecurity lock neon dark"
+    }
+  },
+  "instructions_to_main_agent": [
+    "Strictly follow the color mappings provided: Cyan (#22d3ee) for Personal Safety/Primary, Purple (#8b5cf6) for Family, Red (#ff3b5c) for SOS/Anti-theft, Teal (#2dd4bf) for Smart QR.",
+    "Typography: Use 'Chakra Petch' (Google Fonts) for display/headings and 'Outfit' (or inter/sans) for body.",
+    "Ensure 'GlassCard' component uses 'expo-blur' (or 'expo-glass-effect' on iOS) with surfaceSecondary and 1px borderStrong outline with partial opacity.",
+    "The Home screen SOS button MUST be a large circular element using react-native-reanimated to create a pulsing/glowing alarm ring effect in the red (#ff3b5c) accent.",
+    "Implement 'Chip' component as small pill tags with translucent tinted backgrounds matching the pillar color.",
+    "Use @gorhom/bottom-sheet for the Family map screen to overlay the member list on top of react-native-maps.",
+    "Buttons should have two variants: 'btn-primary' (solid/gradient cyan) and 'btn-ghost' (translucent bordered).",
+    "Iconography MUST use Feather icons (lucide-style line icons)."
+  ],
+  "haptics": {
+    "sos_button_press": "heavy",
+    "tab_change": "light",
+    "toggle_lock": "medium",
+    "join_family": "success"
+  }
+}
