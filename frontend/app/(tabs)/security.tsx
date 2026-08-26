@@ -35,7 +35,7 @@ type Seg = "theft" | "qr";
 type QrKind = "vehicles" | "tags" | "cards";
 
 export default function Security() {
-  const [seg, setSeg] = useState<Seg>("theft");
+  const [seg, setSeg] = useState<Seg>("qr");
   const router = useRouter();
   return (
     <View style={styles.root}>
@@ -50,22 +50,23 @@ export default function Security() {
         }
       />
       <View style={styles.segment}>
-        <Pressable testID="seg-theft" onPress={() => setSeg("theft")} style={[styles.segItem, seg === "theft" && { backgroundColor: colors.red }]}>
-          <Feather name="lock" size={15} color={seg === "theft" ? "#03030a" : colors.textDim} />
-          <Text style={[styles.segText, seg === "theft" && styles.segActiveText]}>Anti-theft</Text>
-        </Pressable>
         <Pressable testID="seg-qr" onPress={() => setSeg("qr")} style={[styles.segItem, seg === "qr" && { backgroundColor: colors.teal }]}>
           <Feather name="grid" size={15} color={seg === "qr" ? "#03030a" : colors.textDim} />
           <Text style={[styles.segText, seg === "qr" && styles.segActiveText]}>Smart QR</Text>
         </Pressable>
+        <Pressable testID="seg-theft" onPress={() => setSeg("theft")} style={[styles.segItem, seg === "theft" && { backgroundColor: colors.red }]}>
+          <Feather name="lock" size={15} color={seg === "theft" ? "#03030a" : colors.textDim} />
+          <Text style={[styles.segText, seg === "theft" && styles.segActiveText]}>Anti-theft</Text>
+        </Pressable>
       </View>
-      {seg === "theft" ? <AntiTheft /> : <SmartQr />}
+      {seg === "qr" ? <SmartQr /> : <AntiTheft />}
     </View>
   );
 }
 
 function AntiTheft() {
   const toast = useToast();
+  const router = useRouter();
   const [devices, setDevices] = useState<Device[] | null>(null);
   const [show, setShow] = useState(false);
   const [busy, setBusy] = useState(false);

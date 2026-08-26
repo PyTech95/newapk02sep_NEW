@@ -134,3 +134,46 @@ test_plan:
 agent_communication:
     -agent: "main"
     -message: "Fork resume. Verified Check-In and Decoy render via screenshots. Please test the auto-SOS reconcile flow end-to-end (frontend + backend /api/me/sos). Demo login demo@neksathi.app / demo1234."
+
+## Session (fork) — QR scan page fix + navigation reorg
+backend:
+  - task: "Public QR scan landing page (browser, no app)"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py (GET /api/s/{qrid} HTMLResponse)"
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "BUG: QR encoded {host}/scan/{qrId} which had no server page in production -> raw 404 'detail not found'. FIX: backend now serves an HTML finder page at GET /api/s/{qrid} (works in preview + production since /api/* routes to backend). Page resolves vehicle/tag/card, shows lost banner + reward, and posts to existing /api/public/* endpoints (incident/alert/message) incl. optional browser geolocation. Unknown qr -> friendly 'not registered' HTML (200). Verified via curl + screenshot."
+frontend:
+  - task: "QR scanUrl + parseQrValue updated to /api/s/"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/api/endpoints.ts"
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "scanUrl now => {EXPO_PUBLIC_API_URL}/api/s/{qrId}. parseQrValue handles /api/s/, /scan/, /s/ and raw ids so the in-app camera scanner still resolves to /scan-report."
+  - task: "Navigation reorg: land on Security/Smart QR, tab & segment order"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/app/(tabs)/_layout.tsx, /app/frontend/app/(tabs)/security.tsx, /app/frontend/src/context/AuthContext.tsx"
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Security is now the first tab + initialRouteName; app lands on Security. Segment order: Smart QR first (default), Anti-theft second. Also fixed undefined `router` in AntiTheft (decoy button would crash). SOS remains on the Home tab."
+
+metadata:
+  created_by: "main_agent"
+
+test_plan:
+  current_focus:
+    - "Public QR scan landing page (browser, no app)"
+    - "Navigation reorg: land on Security/Smart QR, tab & segment order"
+  stuck_tasks: []
+  test_all: false
+  test_priority: "high_first"
+
+agent_communication:
+    -agent: "main"
+    -message: "Fixed reported production bug: scanning a vehicle/tag QR in a browser returned 'detail not found'. Backend now serves GET /api/s/{qrid} HTML finder page. Please test backend scan page for vehicle/tag/card (valid + unknown qr) and that the finder POSTs (incident/alert/message) work. Also verify frontend lands on Security/Smart QR and the in-app camera scan still routes correctly. Demo: demo@neksathi.app / demo1234."

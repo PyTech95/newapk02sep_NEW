@@ -1,0 +1,37 @@
+{
+  "summary": "Verified the Smart-QR 'detail not found' production bug fix end-to-end. Backend: 26/26 pytest cases pass against EXPO_PUBLIC_API_URL. Added 5 new tests for the new GET /api/s/{qrid} HTML landing page: (1) vehicle QR returns 200 text/html with embedded DATA.kind='vehicle' and matching number_plate, (2) tag QR returns kind='tag_guardian' with name/tag_type/reward_text/lost_mode, (3) card QR returns kind='card' with display_name, (4) unknown/garbage qr_id returns 200 text/html (NOT raw JSON 404) with DATA=null so the client renders the friendly 'This code isn\\'t registered' message, (5) the seeded demo vehicle MH01AB1234 resolves through /api/s/{qr_id}. Existing regression endpoints GET /api/public/qr/{qrid} (vehicle+tag), GET /api/public/card/{qrid} still return the correct JSON. Public finder actions POST /api/public/qr/{qrid}/incident, /api/public/tag/{qrid}/alert, /api/public/card/{qrid}/message all return 200 for valid qr_ids and create incidents/alerts visible on the owner's dashboard (verified via /api/incidents + /api/alerts); public/qr/deadbeef still returns 404 for the legacy JSON endpoint. Frontend E2E on Expo web (390x844, chromium via preview URL): logged in with demo@neksathi.app / demo1234, app landed on /security with the 'Smart QR' segment pre-selected showing Vehicles/Tags/ICE Cards chips and the seeded MH01AB1234 vehicle plus the 'Add vehicle' button (NOT the SOS home). Bottom tab bar order is exactly Security → Home → Family → Safety → Profile. Tapping 'Anti-theft' segment renders the devices list and 'Activate fake-off decoy'; the button navigates to /decoy which transitions to the black-screen phase with the low-contrast 'Long-press anywhere for 1.5s to exit' hint — no crash, no reference to undefined router. Home tab remains reachable and still shows the SOS button + 'SOS active' banner (functional regression clean). No red screens, no new page errors; only pre-existing RN-Web deprecation warnings (shadow*, props.pointerEvents) already tracked in iteration_2.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_neksathi_api.py",
+    "/app/test_reports/pytest/neksathi_api.xml"
+  ],
+  "action_items": [
+    "No functional fixes required. Primary bug (Smart QR 'detail not found') and navigation/decoy regressions are fully resolved.",
+    "(Nice-to-have) The 'This code isn\\'t registered with NekSathi yet' branch in SCAN_PAGE currently renders after a brief 'Loading…' flash because DATA is embedded server-side but the client still shows the loading state until render() runs; render is synchronous so it's near-instant but on very slow devices could flash. Consider making the 'Loading…' hidden by default and revealed only if DATA fetch is deferred.",
+    "(Nice-to-have) /api/s/{qrid} always returns 200 for unknown qr_ids by design (better UX). If SEO or monitoring cares about 404s, consider returning HTTP 200 with an HTML body but adding an X-Neksathi-Scan-Status: not-found header for observability."
+  ],
+  "critical_code_review_comments": [
+    "server.py:930-934 — GET /api/s/{qrid} correctly returns text/html for both hit and miss (Content-Type set by HTMLResponse). SCAN_PAGE embeds DATA via a __DATA__ token which is JSON-serialised in Python; the resolver returns None for unknown qr_ids so JSON.parse embeds `null` and the client renders the friendly card. This is same-origin so relative fetches to /api/public/* work in both preview and production without CORS gymnastics.",
+    "server.py:829 — inside SCAN_PAGE the JS single-quote inside \"isn\\'t\" is JS-escaped, not python-escaped, so the served HTML is syntactically valid JS. Confirmed via browser — no console SyntaxError.",
+    "app/(tabs)/_layout.tsx — unstable_settings.initialRouteName='security' plus explicit Tabs.Screen order gives the exact bottom-bar order (Security, Home, Family, Safety, Profile) and lands the user on Security tab after login. Verified in browser.",
+    "app/(tabs)/security.tsx:69,144 — AntiTheft() now imports useRouter and calls router.push('/decoy'); previous 'router is not defined' crash is gone. seg default is 'qr' so Smart QR renders first.",
+    "server.py resolver keys ('number_plate' for vehicle, 'name'+'reward_text' for tag, 'display_name' for card) exactly match what SCAN_PAGE reads for title/subtitle/reward — no mismatch."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_neksathi_api.py",
+    "/app/test_reports/pytest/neksathi_api.xml",
+    "/app/test_reports/iteration_4.json"
+  ],
+  "success_rate": {"backend": "100% (26/26)", "frontend": "100% (login → Security landing, tab order, decoy no-crash, SOS regression)"},
+  "seed_data_creation": "Reused existing seeded demo user + MH01AB1234 vehicle + School Bag tag. Test run created transient TEST_* vehicles/tags/cards/incidents which live in demo user's account (already visible in the Security screen as TEST-* plates in LOST mode from previous test iterations).",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "The Smart-QR public finder page is served at GET /api/s/{qr_id} (HTML, 200 for both hit + miss). To reproduce the original bug via UI: open /api/s/somefakeid in a browser — should now render the NekSathi finder card with 'This code isn\\'t registered with NekSathi yet.' instead of a raw {detail:'Not found'} 404. The JSON resolver endpoints (/api/public/qr/{qrid} and /api/public/card/{qrid}) are still the ones the in-app scanner uses and still 404 correctly on unknown ids. When testing tag scan pages, note that test_tag_update_and_lost renames the fixture tag mid-suite; the scan-page tag test therefore asserts kind+tag_type only, not the original name. Bottom-tab initial route is controlled by unstable_settings in app/(tabs)/_layout.tsx — don't remove that or the app will regress back to landing on Home/SOS.",
+  "rca_of_issue": "Root cause: QR codes were encoded with the URL {host}/scan/{qrId} (or equivalent) but the backend only exposed a JSON resolver at /api/public/qr/{qrid}. When a bystander scanned the QR with their native camera app the URL opened as a plain HTTP GET, hit an unmatched route, and the FastAPI 404 handler returned JSON `{detail:'Not found'}` which browsers render as 'detail not found'. Fix: (a) backend now serves an HTML landing page at GET /api/s/{qrid} that always returns 200 text/html (only the /api/* path is routed through k8s ingress to the backend, so the same URL works in preview and production); (b) the HTML page reads an embedded JSON DATA constant and calls the existing /api/public/qr|tag|card/* endpoints via same-origin fetch for actions (found / message); (c) the QR generator in the app is expected to encode {host}/api/s/{qr_id}. Mitigation steps: verified via pytest that unknown qr_ids return HTML+200 with DATA=null; verified via browser that vehicles/tags/cards render correct fields; verified that finder POST endpoints still succeed for valid qr_ids."
+}

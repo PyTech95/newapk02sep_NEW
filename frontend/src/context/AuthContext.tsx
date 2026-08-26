@@ -92,7 +92,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!user && !inAuth) {
       router.replace("/(auth)/login");
     } else if (user && inAuth) {
-      router.replace("/(tabs)");
+      router.replace("/(tabs)/security");
     }
   }, [user, segments, bootstrapping]);
 

@@ -132,8 +132,9 @@ export const reportIntruder = (id: string) =>
 export const reportSimSwap = (id: string) =>
   api.post(`/devices/${id}/sim-swap`, {}).then((r) => r.data);
 
-// scan URL that a QR should encode
-export const scanUrl = (qrId: string) => `${process.env.EXPO_PUBLIC_API_URL}/scan/${qrId}`;
+// scan URL that a QR should encode — a public web page served by the backend
+// (works with any phone camera / browser, no NekSathi app required).
+export const scanUrl = (qrId: string) => `${process.env.EXPO_PUBLIC_API_URL}/api/s/${qrId}`;
 
 // ---------- Public scan / report (finder flow, no ownership required) ----------
 export interface ResolvedItem {
@@ -168,11 +169,13 @@ export const alertTag = (qrId: string, payload: ScanReportPayload) =>
 export const messageCard = (qrId: string, payload: { name?: string; phone?: string; message?: string }) =>
   api.post(`/public/card/${qrId}/message`, payload).then((r) => r.data);
 
-// pull a bare qr id out of a scanned value (URL or raw id)
+// pull a bare qr id out of a scanned value (URL or raw id).
+// Handles both the new "/api/s/<id>" page URL and the legacy "/scan/<id>".
 export const parseQrValue = (value: string): string => {
   const trimmed = value.trim();
-  const marker = "/scan/";
-  const idx = trimmed.indexOf(marker);
-  if (idx >= 0) return trimmed.slice(idx + marker.length).split(/[/?#]/)[0];
+  for (const marker of ["/api/s/", "/scan/", "/s/"]) {
+    const idx = trimmed.indexOf(marker);
+    if (idx >= 0) return trimmed.slice(idx + marker.length).split(/[/?#]/)[0];
+  }
   return trimmed.split(/[/?#]/).pop() || trimmed;
 };

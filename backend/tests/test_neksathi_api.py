@@ -317,3 +317,77 @@ def test_device_register_and_reports(headers):
     bogus = requests.get(f"{BASE_URL}/api/devices/does-not-exist/lock-state",
                         headers=headers, timeout=20)
     assert bogus.status_code == 404
+
+
+
+# ---------- Scan finder landing page (primary bug fix) ----------
+import re
+import json as _json
+
+
+def _extract_scan_data(html: str):
+    """Extract the DATA constant embedded by /api/s/{qrid}."""
+    m = re.search(r"const\s+DATA\s*=\s*(.+?);\s*\n", html)
+    assert m, "DATA constant not found in scan page"
+    return _json.loads(m.group(1))
+
+
+def test_scan_page_vehicle(vehicle):
+    r = requests.get(f"{BASE_URL}/api/s/{vehicle['qr_id']}", timeout=20)
+    assert r.status_code == 200, r.text
+    assert "text/html" in r.headers.get("content-type", "").lower()
+    assert "NekSathi" in r.text and "Loading" in r.text
+    data = _extract_scan_data(r.text)
+    assert data is not None
+    assert data["kind"] == "vehicle"
+    assert data["number_plate"] == vehicle["number_plate"]
+    assert data["qr_id"] == vehicle["qr_id"]
+
+
+def test_scan_page_tag(tag):
+    r = requests.get(f"{BASE_URL}/api/s/{tag['qr_id']}", timeout=20)
+    assert r.status_code == 200
+    assert "text/html" in r.headers.get("content-type", "").lower()
+    data = _extract_scan_data(r.text)
+    assert data["kind"] == "tag_guardian"
+    # tag may have been renamed by test_tag_update_and_lost; just assert non-empty
+    assert data.get("name")
+    assert data.get("tag_type") == tag["tag_type"]
+    # reward_text and lost_mode keys must be present (may be null/false)
+    assert "reward_text" in data and "lost_mode" in data
+
+
+def test_scan_page_card(card):
+    r = requests.get(f"{BASE_URL}/api/s/{card['qr_id']}", timeout=20)
+    assert r.status_code == 200
+    assert "text/html" in r.headers.get("content-type", "").lower()
+    data = _extract_scan_data(r.text)
+    assert data["kind"] == "card"
+    assert data["display_name"] == card["display_name"]
+
+
+def test_scan_page_unknown_qrid_returns_html_not_json_404():
+    """Bug fix: unknown QR must render friendly HTML page, NOT raw 404."""
+    r = requests.get(f"{BASE_URL}/api/s/garbage-does-not-exist-xyz", timeout=20)
+    assert r.status_code == 200, f"expected 200, got {r.status_code}: {r.text[:200]}"
+    assert "text/html" in r.headers.get("content-type", "").lower()
+    assert "NekSathi" in r.text
+    # DATA must be null so client-side renders the "not registered" message
+    data = _extract_scan_data(r.text)
+    assert data is None
+
+
+def test_scan_page_seeded_demo_vehicle():
+    """Seed vehicle (MH01AB1234) must resolve via /api/s/{qr_id}."""
+    r = requests.post(f"{BASE_URL}/api/auth/login",
+                      json={"email": DEMO_EMAIL, "password": DEMO_PASSWORD}, timeout=15)
+    assert r.status_code == 200
+    tok = r.json()["access_token"]
+    vh = requests.get(f"{BASE_URL}/api/vehicles",
+                      headers={"Authorization": f"Bearer {tok}"}, timeout=15).json()
+    seeded = next((v for v in vh if v["number_plate"] == "MH01AB1234"), None)
+    assert seeded, "seeded demo vehicle missing"
+    r2 = requests.get(f"{BASE_URL}/api/s/{seeded['qr_id']}", timeout=20)
+    assert r2.status_code == 200
+    data = _extract_scan_data(r2.text)
+    assert data["kind"] == "vehicle" and data["number_plate"] == "MH01AB1234"
