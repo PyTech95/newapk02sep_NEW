@@ -4,6 +4,7 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import { setUnauthorizedHandler, TOKEN_KEY } from "@/src/api/client";
 import { getMe, login as apiLogin, otpVerify as apiOtpVerify, register as apiRegister } from "@/src/api/endpoints";
 import { AuthResponse, User } from "@/src/api/types";
+import { registerForPush, maybeNudgeForPush } from "@/src/services/push";
 import { storage } from "@/src/utils/storage";
 
 interface AuthContextValue {
@@ -60,6 +61,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUnauthorizedHandler(() => setUser(null));
     return () => setUnauthorizedHandler(null);
   }, []);
+
+  // Register this device for Guardian push alerts whenever a user is active.
+  useEffect(() => {
+    if (!user) return;
+    registerForPush(user.id);
+    maybeNudgeForPush();
+  }, [user?.id]);
 
   // On cold start, restore session if a token exists.
   useEffect(() => {

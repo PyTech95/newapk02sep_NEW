@@ -7,6 +7,7 @@ from datetime import datetime, timezone, timedelta
 
 import jwt
 import bcrypt
+import httpx
 from fastapi import FastAPI, APIRouter, HTTPException, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from dotenv import load_dotenv
@@ -31,6 +32,32 @@ app = FastAPI(title="NekSathi API")
 api = APIRouter(prefix="/api")
 bearer = HTTPBearer(auto_error=False)
 logger = logging.getLogger("neksathi")
+
+
+# ---------------- push notifications (Emergent managed relay) ----------------
+PUSH_BASE_URL = "https://integrations.emergentagent.com"
+PUSH_KEY = os.environ.get("EMERGENT_PUSH_KEY", "placeholder")
+_push_client = httpx.AsyncClient(
+    base_url=PUSH_BASE_URL,
+    headers={"X-Push-Key": PUSH_KEY},
+    timeout=10.0,
+)
+
+
+async def send_push(recipients: list, data: dict, idempotency_key: str = None) -> None:
+    if not recipients:
+        return
+    if "title" not in data or "message" not in data:
+        raise ValueError("data must include title and message")
+    payload = {"recipients": recipients[:100], "data": data}
+    if idempotency_key:
+        payload["$idempotency_key"] = idempotency_key
+    resp = await _push_client.post("/api/v1/push/trigger", json=payload)
+    if resp.status_code == 401:
+        raise HTTPException(500, "EMERGENT_PUSH_KEY missing or invalid")
+    if resp.status_code >= 500:
+        raise HTTPException(502, "Push provider unavailable")
+    resp.raise_for_status()
 
 
 # ---------------- helpers ----------------
@@ -322,6 +349,24 @@ async def create_sos(body: SosIn, u: dict = Depends(current_user)):
     await db.sos.insert_one(ev)
     await db.users.update_one({"id": u["id"]}, {"$set": {"last_lat": body.latitude, "last_lng": body.longitude, "last_seen": now_iso()}})
     await db.trails.insert_one({"owner_id": u["id"], "latitude": body.latitude, "longitude": body.longitude, "ts": now_iso()})
+    # Guardian Push Alert: notify family members (except the sender) that an SOS is active.
+    try:
+        fid = u.get("family_id")
+        if fid:
+            members = await db.users.find({"family_id": fid}).to_list(50)
+            recipients = [m["id"] for m in members if m["id"] != u["id"]]
+            if recipients:
+                await send_push(
+                    recipients=recipients,
+                    data={
+                        "title": f"🆘 {u.get('name', 'A family member')} needs help",
+                        "message": body.message or "SOS triggered — tap to see their live location.",
+                        "action_url": "/(tabs)/family",
+                    },
+                    idempotency_key=ev["id"],
+                )
+    except Exception as e:
+        logger.warning("Guardian push failed (non-blocking): %s", e)
     return clean(ev)
 
 
@@ -338,6 +383,23 @@ async def ack_sos(sid: str, u: dict = Depends(current_user)):
     if r.matched_count == 0:
         raise HTTPException(404, "SOS not found")
     return {"ok": True}
+
+
+class RegisterPushBody(BaseModel):
+    user_id: str
+    platform: str  # "android" | "ios"
+    device_token: str
+
+
+@api.post("/register-push", status_code=201)
+async def register_push(body: RegisterPushBody):
+    resp = await _push_client.post("/api/v1/push/users/register", json=body.model_dump())
+    if resp.status_code == 401:
+        raise HTTPException(500, "EMERGENT_PUSH_KEY missing or invalid")
+    if resp.status_code >= 500:
+        raise HTTPException(502, "Push provider unavailable")
+    resp.raise_for_status()
+    return {"status": "registered"}
 
 
 @api.get("/me/emergency-contacts")

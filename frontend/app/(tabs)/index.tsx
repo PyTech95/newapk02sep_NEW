@@ -14,6 +14,7 @@ import { SOSButton } from "@/src/components/SOSButton";
 import { SosCountdown } from "@/src/components/SosCountdown";
 import { useAuth } from "@/src/context/AuthContext";
 import { useToast } from "@/src/context/ToastContext";
+import { reconcileCheckIn } from "@/src/services/checkin";
 import { fetchScanCount, getSeenCount } from "@/src/services/scanBadge";
 import { colors, fonts, fontSize, radius, spacing, tint } from "@/src/theme";
 import { requestLocation } from "@/src/utils/location";
@@ -67,7 +68,7 @@ export default function Home() {
     }
   };
 
-  useFocusEffect(useCallback(() => { loadStats(); }, [loadStats]));
+  useFocusEffect(useCallback(() => { loadStats(); reconcileCheckIn().then((fired) => { if (fired) { toast("Check-in missed — SOS sent automatically", "error"); loadStats(); } }); }, [loadStats]));
 
   const onSos = async () => {
     setSosLoading(true);

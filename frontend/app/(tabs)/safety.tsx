@@ -141,6 +141,7 @@ export default function Safety() {
         <Tool icon="maximize" color={colors.teal} title="Scan a found item" sub="Help return someone's lost bag or vehicle" onPress={() => router.push("/scan")} testID="safety-scan" />
         <Tool icon="clock" color={colors.teal} title="Scan history" sub="See who scanned your QR, when & where" onPress={() => router.push("/scan-history")} testID="safety-scan-history" />
         <Tool icon="award" color={colors.green} title="Recovery receipts" sub="Rewards you've paid to finders" onPress={() => router.push("/receipts")} testID="safety-receipts" />
+        <Tool icon="watch" color={colors.red} title="Safety check-in" sub="Auto-SOS if you don't return in time" onPress={() => router.push("/check-in")} testID="safety-checkin" />
       </ScrollView>
     </View>
   );

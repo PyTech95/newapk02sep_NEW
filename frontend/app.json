@@ -33,7 +33,8 @@
         "ACCESS_BACKGROUND_LOCATION",
         "FOREGROUND_SERVICE",
         "FOREGROUND_SERVICE_LOCATION",
-        "CAMERA"
+        "CAMERA",
+        "POST_NOTIFICATIONS"
       ]
     },
     "web": {
@@ -43,6 +44,13 @@
     },
     "plugins": [
       "expo-router",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/icon.png",
+          "color": "#06060f"
+        }
+      ],
       [
         "expo-splash-screen",
         {

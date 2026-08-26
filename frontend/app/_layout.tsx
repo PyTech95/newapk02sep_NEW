@@ -1,9 +1,11 @@
-import { Stack } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import { useFonts } from "expo-font";
 import { StatusBar } from "expo-status-bar";
 import * as SplashScreen from "expo-splash-screen";
+import * as Notifications from "expo-notifications";
+import * as Linking from "expo-linking";
 import { useEffect } from "react";
-import { LogBox } from "react-native";
+import { LogBox, Platform } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -18,6 +20,28 @@ import { colors } from "@/src/theme";
 // and agent works as expected.
 LogBox.ignoreAllLogs(true);
 
+// Foreground display behaviour — module scope, before any component.
+if (Platform.OS !== "web") {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: false,
+      shouldShowBanner: true,
+      shouldShowList: true,
+    }),
+  });
+}
+
+// Android channel — module scope so it exists before any push arrives.
+if (Platform.OS === "android") {
+  Notifications.setNotificationChannelAsync("default", {
+    name: "Default",
+    importance: Notifications.AndroidImportance.MAX,
+    sound: "default",
+  });
+}
+
 // Keep the native splash visible from cold start until icon fonts register.
 // Required because @expo/vector-icons' componentDidMount fallback fires
 // Font.loadAsync against a broken vendor path if any <Icon> mounts before
@@ -25,6 +49,7 @@ LogBox.ignoreAllLogs(true);
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
+  const router = useRouter();
   const [iconsLoaded, iconsError] = useIconFonts();
   const [fontsLoaded, fontsError] = useFonts({
     "ChakraPetch-Bold": require("../assets/fonts/ChakraPetch-Bold.ttf"),
@@ -39,6 +64,29 @@ export default function RootLayout() {
   useEffect(() => {
     if (iconsReady && fontsReady) SplashScreen.hideAsync();
   }, [iconsReady, fontsReady]);
+
+  // Notification tap handling (native only).
+  useEffect(() => {
+    if (Platform.OS === "web") return;
+
+    const openFromData = (data: any) => {
+      const url = data?.deeplink || data?.action_url;
+      if (!url) return;
+      url.startsWith("http") ? Linking.openURL(url) : router.push(url);
+    };
+
+    // Warm tap — app already open.
+    const tapSub = Notifications.addNotificationResponseReceivedListener((response) => {
+      openFromData(response.notification.request.content.data || {});
+    });
+
+    // Cold-start tap — app was killed.
+    Notifications.getLastNotificationResponseAsync().then((response) => {
+      if (response) openFromData(response.notification.request.content.data || {});
+    });
+
+    return () => tapSub.remove();
+  }, []);
 
   // If the CDN is unreachable we fall through on error rather than wedging
   // the app — icons will tofu, but the app still boots.

@@ -34,6 +34,10 @@ export const otpVerify = (phone: string, code: string, name?: string) =>
 
 export const getMe = () => api.get<User>("/auth/me").then((r) => r.data);
 
+// ---------- Push (Guardian Alert) ----------
+export const registerPush = (user_id: string, platform: string, device_token: string) =>
+  api.post("/register-push", { user_id, platform, device_token }).then((r) => r.data);
+
 export const updateMe = (payload: Partial<Pick<User, "name" | "phone">> & { notify_prefs?: Partial<User["notify_prefs"]>; escalate_seconds?: number }) =>
   api.put<User>("/auth/me", payload).then((r) => r.data);
 

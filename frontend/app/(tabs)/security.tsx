@@ -140,6 +140,7 @@ function AntiTheft() {
       )}
 
       <NeonButton label="Register device" color={colors.red} icon="plus" onPress={() => setShow(true)} testID="device-add-button" />
+      <NeonButton label="Activate fake-off decoy" variant="ghost" color={colors.amber} icon="power" onPress={() => router.push("/decoy")} testID="decoy-button" />
 
       <OverlayForm visible={show} title="Register device" color={colors.red} submitLabel="Register" busy={busy} onClose={() => setShow(false)} onSubmit={onAdd} testID="device-form">
         <Field label="DEVICE NAME" icon="smartphone" placeholder="e.g. My Pixel" value={name} onChangeText={setName} testID="device-name-input" />

@@ -101,3 +101,36 @@
 #====================================================================================================
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
+## Session (fork) — Safety Check-In & Fake-Off Decoy verification
+frontend:
+  - task: "Safety Check-In (timer-based auto-SOS dead-man's switch)"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/app/check-in.tsx, /app/frontend/src/services/checkin.ts, /app/frontend/app/(tabs)/index.tsx"
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Screens render; timer starts (verified via screenshot showing 14:58 countdown + toast). Need e2e: starting timer persists deadline; reconcileCheckIn on Home focus auto-fires triggerSos (POST /api/me/sos) when deadline passed; 'I'm safe' clears it."
+  - task: "Fake-Off Decoy (fake shutdown screen keeping Guardian tracking on)"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/app/decoy.tsx, /app/frontend/app/(tabs)/security.tsx"
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Renders black shutdown screen; startGuardian() invoked; long-press exits. Verified via screenshot."
+
+metadata:
+  created_by: "main_agent"
+
+test_plan:
+  current_focus:
+    - "Safety Check-In (timer-based auto-SOS dead-man's switch)"
+    - "Fake-Off Decoy"
+  stuck_tasks: []
+  test_all: false
+  test_priority: "high_first"
+
+agent_communication:
+    -agent: "main"
+    -message: "Fork resume. Verified Check-In and Decoy render via screenshots. Please test the auto-SOS reconcile flow end-to-end (frontend + backend /api/me/sos). Demo login demo@neksathi.app / demo1234."

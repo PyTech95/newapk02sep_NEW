@@ -99,3 +99,13 @@ Build a native mobile app "NekSathi" (Expo + expo-router, TypeScript) that talks
 - P2: Richer QR item editing (photos, lost-mode toggle, ICE medical fields).
 - P2: Map clustering + tap-to-focus a member; safe-zone drawing on map.
 - P2: In-app scan flow (camera) to report a found item.
+
+## Guardian Push Alert (done, pending native build)
+- SOS triggers push to family/guardians via Emergent managed relay (backend send_push in create_sos, non-blocking).
+- Endpoints: POST /api/register-push, send_push helper. EMERGENT_PUSH_KEY=placeholder (set at deploy).
+- Frontend: registerForPush on login (AuthContext), tap handlers + Android channel + handler in app/_layout.tsx, weekly denied-permission nudge.
+- app.json: expo-notifications plugin added; POST_NOTIFICATIONS permission added.
+- PENDING: user to add frontend/google-services.json + set expo.android.googleServicesFile, then Publish + build. Works only on native build.
+
+## Safety Check-In + Fake-Off Decoy (done, tested)
+- check-in.tsx timer -> auto-SOS reconcile on Home focus. decoy.tsx fake shutdown keeps Guardian tracking.
