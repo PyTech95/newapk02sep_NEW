@@ -4,11 +4,12 @@ import { useEffect, useState } from "react";
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { errMessage } from "@/src/api/client";
-import { listSosEvents } from "@/src/api/endpoints";
+import { ackSos, listSosEvents } from "@/src/api/endpoints";
 import { SosEvent } from "@/src/api/types";
 import { Chip } from "@/src/components/Chip";
 import { EmptyState } from "@/src/components/EmptyState";
 import { GlassCard } from "@/src/components/GlassCard";
+import { NeonButton } from "@/src/components/NeonButton";
 import { ScreenHeader } from "@/src/components/ScreenHeader";
 import { useToast } from "@/src/context/ToastContext";
 import { colors, fonts, fontSize, spacing, tint } from "@/src/theme";
@@ -23,9 +24,21 @@ export default function SosEvents() {
   const toast = useToast();
   const [items, setItems] = useState<SosEvent[] | null>(null);
 
+  const reload = () => listSosEvents().then(setItems).catch((e) => toast(errMessage(e), "error"));
+
   useEffect(() => {
-    listSosEvents().then(setItems).catch((e) => toast(errMessage(e), "error"));
+    reload();
   }, []);
+
+  const onAck = async (id: string) => {
+    try {
+      await ackSos(id);
+      toast("Marked as acknowledged — escalation stopped", "success");
+      reload();
+    } catch (e) {
+      toast(errMessage(e, "Could not acknowledge"), "error");
+    }
+  };
 
   return (
     <View style={styles.root}>
@@ -55,7 +68,13 @@ export default function SosEvents() {
                 />
               </View>
               <Text style={styles.detail}>{e.notified} guardian(s) notified via {e.channels.join(", ")}</Text>
+              {(e.escalation_level ?? 0) > 0 && !e.acknowledged && (
+                <Text style={styles.escalation}>⚠️ Auto-escalated to {e.escalation_level} more contact(s) — no response yet</Text>
+              )}
               <Text style={styles.coords}>📍 {e.latitude.toFixed(4)}, {e.longitude.toFixed(4)}</Text>
+              {!e.acknowledged && (
+                <NeonButton label="I'm safe — stop escalation" variant="ghost" color={colors.green} icon="check" onPress={() => onAck(e.id)} testID={`sos-ack-${e.id}`} />
+              )}
             </GlassCard>
           ))}
         </ScrollView>
@@ -74,5 +93,6 @@ const styles = StyleSheet.create({
   title: { color: colors.text, fontFamily: fonts.displaySemi, fontSize: fontSize.base },
   meta: { color: colors.textDim, fontFamily: fonts.body, fontSize: fontSize.sm, marginTop: 2 },
   detail: { color: colors.textMuted, fontFamily: fonts.body, fontSize: fontSize.sm },
+  escalation: { color: colors.amber, fontFamily: fonts.displayMedium, fontSize: fontSize.sm },
   coords: { color: colors.textDim, fontFamily: fonts.body, fontSize: fontSize.sm },
 });

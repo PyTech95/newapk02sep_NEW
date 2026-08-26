@@ -25,6 +25,7 @@ db = client[os.environ["DB_NAME"]]
 JWT_SECRET = os.environ.get("JWT_SECRET", "neksathi-dev-secret")
 JWT_ALGO = "HS256"
 TOKEN_DAYS = 30
+ESCALATE_AFTER = int(os.environ.get("SOS_ESCALATE_SECONDS", "120"))
 
 app = FastAPI(title="NekSathi API")
 api = APIRouter(prefix="/api")
@@ -93,6 +94,35 @@ async def current_user(cred: Optional[HTTPAuthorizationCredentials] = Depends(be
     if not u:
         raise HTTPException(401, "User not found")
     return u
+
+
+async def run_escalation(uid: str):
+    """Lazy SOS escalation: alert the next emergency contact every ESCALATE_AFTER
+    seconds while an SOS stays unacknowledged. No background job needed."""
+    contacts = await db.contacts.find({"owner_id": uid}).to_list(50)
+    if not contacts:
+        return
+    now = datetime.now(timezone.utc)
+    open_events = await db.sos.find({"owner_id": uid, "acknowledged": False}).to_list(100)
+    for ev in open_events:
+        try:
+            created = datetime.fromisoformat(ev["created_at"].replace("Z", "+00:00"))
+        except Exception:
+            continue
+        elapsed = (now - created).total_seconds()
+        level = ev.get("escalation_level", 0)
+        target = min(len(contacts), int(elapsed // ESCALATE_AFTER))
+        if target > level:
+            for i in range(level, target):
+                c = contacts[i]
+                await db.alerts.insert_one({
+                    "id": str(uuid.uuid4()), "owner_id": uid, "type": "sos_escalation",
+                    "message": f"No response — SOS auto-escalated to {c['name']} ({c['phone']})",
+                    "created_at": now_iso(),
+                })
+            await db.sos.update_one({"id": ev["id"]}, {"$set": {
+                "escalation_level": target, "escalated": True, "notified": max(ev.get("notified", 0), target),
+            }})
 
 
 # ---------------- models ----------------
@@ -281,7 +311,7 @@ async def create_sos(body: SosIn, u: dict = Depends(current_user)):
     ev = {
         "id": str(uuid.uuid4()), "owner_id": u["id"], "latitude": body.latitude, "longitude": body.longitude,
         "message": body.message, "notified": max(n_contacts, 1), "channels": ["whatsapp", "push"],
-        "has_photo": False, "acknowledged": False, "escalated": False, "created_at": now_iso(),
+        "has_photo": False, "acknowledged": False, "escalated": False, "escalation_level": 0, "created_at": now_iso(),
     }
     await db.sos.insert_one(ev)
     await db.users.update_one({"id": u["id"]}, {"$set": {"last_lat": body.latitude, "last_lng": body.longitude, "last_seen": now_iso()}})
@@ -291,8 +321,17 @@ async def create_sos(body: SosIn, u: dict = Depends(current_user)):
 
 @api.get("/me/sos-events")
 async def sos_events(u: dict = Depends(current_user)):
+    await run_escalation(u["id"])
     rows = await db.sos.find({"owner_id": u["id"]}).sort("created_at", -1).to_list(200)
     return [clean(r) for r in rows]
+
+
+@api.post("/me/sos/{sid}/ack")
+async def ack_sos(sid: str, u: dict = Depends(current_user)):
+    r = await db.sos.update_one({"id": sid, "owner_id": u["id"]}, {"$set": {"acknowledged": True}})
+    if r.matched_count == 0:
+        raise HTTPException(404, "SOS not found")
+    return {"ok": True}
 
 
 @api.get("/me/emergency-contacts")
@@ -502,6 +541,7 @@ async def add_card(body: CardIn, u: dict = Depends(current_user)):
 # ---------------- alerts & incidents ----------------
 @api.get("/alerts")
 async def list_alerts(u: dict = Depends(current_user)):
+    await run_escalation(u["id"])
     return [clean(r) for r in await db.alerts.find({"owner_id": u["id"]}).sort("created_at", -1).to_list(200)]
 
 

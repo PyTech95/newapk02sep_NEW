@@ -84,6 +84,9 @@ Build a native mobile app "NekSathi" (Expo + expo-router, TypeScript) that talks
 - [x] **Guardian Live Trail**: `/me/location` + `/me/sos` append to a `trails` collection; `GET /family` returns each member's last ~12 points as `trail`; `FamilyMap` draws a dashed Polyline per member (cyan = you, purple = others) in addition to the current pin. (Renders on device; web shows the fallback.)
 - [x] **Reward on Return+**: the Recovered flow now also takes the finder's phone and auto-opens an SMS thank-you (with reward confirmation) after paying via UPI and logging the receipt.
 
+## Implemented (2026-06 / feature update 8)
+- [x] **SOS Auto-Escalate**: SOS events start unacknowledged; `run_escalation()` (lazy, no cron — runs on GET /me/sos-events, GET /alerts, /me/location) alerts the next emergency contact every `SOS_ESCALATE_SECONDS` (default 120s) while unacknowledged, capped at the contact count, creating `sos_escalation` alerts naming each contact. New `POST /me/sos/{id}/ack` stops escalation; SOS history screen shows escalation status + an "I'm safe — stop escalation" button. Verified via API (level increments, named alerts, ack stops it, 404 on bad id).
+
 ## Backlog
 - P1: Native Device-Admin anti-theft module (remote lock/siren/intruder-selfie + shutdown-resistant tracking).
 - P1: Real reward payout — integrate a payment gateway (e.g. Razorpay) with escrow + release-on-return (needs backend support).

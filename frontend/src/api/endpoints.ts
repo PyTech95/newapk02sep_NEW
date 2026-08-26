@@ -42,6 +42,7 @@ export const triggerSos = (latitude: number, longitude: number, message?: string
   api.post<SosEvent>("/me/sos", { latitude, longitude, message }).then((r) => r.data);
 
 export const listSosEvents = () => api.get<SosEvent[]>("/me/sos-events").then((r) => r.data);
+export const ackSos = (id: string) => api.post(`/me/sos/${id}/ack`, {}).then((r) => r.data);
 
 export const listContacts = () =>
   api.get<EmergencyContact[]>("/me/emergency-contacts").then((r) => r.data);

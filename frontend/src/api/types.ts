@@ -48,6 +48,7 @@ export interface SosEvent {
   has_photo: boolean;
   acknowledged: boolean;
   escalated: boolean;
+  escalation_level?: number;
   created_at: string;
 }
 
