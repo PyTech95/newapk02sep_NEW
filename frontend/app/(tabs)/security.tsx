@@ -35,9 +35,19 @@ type QrKind = "vehicles" | "tags" | "cards";
 
 export default function Security() {
   const [seg, setSeg] = useState<Seg>("theft");
+  const router = useRouter();
   return (
     <View style={styles.root}>
-      <ScreenHeader title="Security" subtitle="Anti-theft & Smart QR" accent={colors.teal} />
+      <ScreenHeader
+        title="Security"
+        subtitle="Anti-theft & Smart QR"
+        accent={colors.teal}
+        right={
+          <Pressable testID="security-scan-history" onPress={() => router.push("/scan-history")} hitSlop={10}>
+            <Feather name="clock" size={22} color={colors.teal} />
+          </Pressable>
+        }
+      />
       <View style={styles.segment}>
         <Pressable testID="seg-theft" onPress={() => setSeg("theft")} style={[styles.segItem, seg === "theft" && { backgroundColor: colors.red }]}>
           <Feather name="lock" size={15} color={seg === "theft" ? "#03030a" : colors.textDim} />
@@ -97,7 +107,7 @@ function AntiTheft() {
     <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
       <GlassCard borderColor={colors.borderRed} style={styles.infoBanner}>
         <Feather name="info" size={16} color={colors.red} />
-        <Text style={styles.infoText}>Remote lock, siren & intruder-selfie run on the installed app build (Device Admin) — not in Expo Go.</Text>
+        <Text style={styles.infoText}>Remote lock, siren, intruder-selfie & shutdown-resistant tracking run on the installed app build (Android Device Admin) — not in Expo Go. Register your device here so it's ready.</Text>
       </GlassCard>
 
       {devices === null ? (

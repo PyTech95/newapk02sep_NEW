@@ -15,9 +15,9 @@ import {
   getSchedule,
   minutesToDate,
   minutesToLabel,
-  reconcileSchedule,
   saveSchedule,
 } from "@/src/services/guardianSchedule";
+import { getAutoArm, setAutoArm, syncGuardianState } from "@/src/services/guardianControl";
 import { colors, fonts, fontSize, radius, spacing, tint } from "@/src/theme";
 
 const DAYS = ["S", "M", "T", "W", "T", "F", "S"];
@@ -26,11 +26,13 @@ export default function GuardianScheduleScreen() {
   const router = useRouter();
   const toast = useToast();
   const [sched, setSched] = useState<GuardianSchedule>(DEFAULT_SCHEDULE);
+  const [autoArm, setAutoArmState] = useState(false);
   const [show, setShow] = useState<"start" | "end" | null>(null);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     getSchedule().then(setSched);
+    getAutoArm().then(setAutoArmState);
   }, []);
 
   const toggleDay = (d: number) => {
@@ -50,10 +52,9 @@ export default function GuardianScheduleScreen() {
     setSaving(true);
     try {
       await saveSchedule(sched);
-      const changed = await reconcileSchedule();
-      if (changed === "started") toast("Schedule saved — Guardian is now active", "success");
-      else if (changed === "stopped") toast("Schedule saved — Guardian paused (outside window)", "info");
-      else toast("Schedule saved", "success");
+      await setAutoArm(autoArm);
+      await syncGuardianState();
+      toast("Guardian automation saved", "success");
       router.back();
     } finally {
       setSaving(false);
@@ -100,6 +101,23 @@ export default function GuardianScheduleScreen() {
           })}
         </View>
         <Text style={styles.hint}>Leave all days off to run every day.</Text>
+
+        <GlassCard borderColor={colors.borderPurple} style={styles.row} testID="autoarm-card">
+          <View style={[styles.bubble, { backgroundColor: tint.purple }]}>
+            <Feather name="navigation" size={20} color={colors.purple} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.title}>Auto-arm on leaving a safe zone</Text>
+            <Text style={styles.sub}>Guardian switches on by itself the moment you step outside any safe zone</Text>
+          </View>
+          <Switch
+            value={autoArm}
+            onValueChange={setAutoArmState}
+            trackColor={{ true: colors.purple, false: colors.border }}
+            thumbColor="#fff"
+            testID="autoarm-switch"
+          />
+        </GlassCard>
 
         <NeonButton label="Save schedule" color={colors.purple} icon="check" onPress={onSave} loading={saving} testID="schedule-save-button" style={{ marginTop: spacing.md }} />
         <Text style={styles.note}>Note: while the app is fully closed the OS may not flip the schedule until you next open NekSathi. Once Guardian is on, it keeps running via the foreground service. Requires an installed build.</Text>

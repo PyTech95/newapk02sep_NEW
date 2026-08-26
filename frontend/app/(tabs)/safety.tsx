@@ -9,7 +9,8 @@ import { GlassCard } from "@/src/components/GlassCard";
 import { ScreenHeader } from "@/src/components/ScreenHeader";
 import { useToast } from "@/src/context/ToastContext";
 import { isGuardianRunning, startGuardian, stopGuardian } from "@/src/services/backgroundLocation";
-import { getSchedule, minutesToLabel, reconcileSchedule, type GuardianSchedule } from "@/src/services/guardianSchedule";
+import { syncGuardianState } from "@/src/services/guardianControl";
+import { getSchedule, minutesToLabel, type GuardianSchedule } from "@/src/services/guardianSchedule";
 import { colors, fonts, fontSize, spacing, tint } from "@/src/theme";
 import { requestLocation } from "@/src/utils/location";
 
@@ -23,7 +24,7 @@ export default function Safety() {
   const [sched, setSched] = useState<GuardianSchedule | null>(null);
 
   const syncGuardian = useCallback(async () => {
-    await reconcileSchedule();
+    await syncGuardianState();
     setGuardian(await isGuardianRunning());
     setSched(await getSchedule());
   }, []);
@@ -138,6 +139,7 @@ export default function Safety() {
         <Tool icon="clock" color={colors.cyan} title="SOS history" sub={`${counts.sos} past alert(s)`} onPress={() => router.push("/sos-events")} testID="safety-history" />
         <Tool icon="bell" color={colors.amber} title="Alerts & incidents" sub="Notifications and reports" onPress={() => router.push("/alerts")} testID="safety-alerts" />
         <Tool icon="maximize" color={colors.teal} title="Scan a found item" sub="Help return someone's lost bag or vehicle" onPress={() => router.push("/scan")} testID="safety-scan" />
+        <Tool icon="clock" color={colors.teal} title="Scan history" sub="See who scanned your QR, when & where" onPress={() => router.push("/scan-history")} testID="safety-scan-history" />
       </ScrollView>
     </View>
   );

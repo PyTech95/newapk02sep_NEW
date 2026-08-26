@@ -52,8 +52,13 @@ Build a native mobile app "NekSathi" (Expo + expo-router, TypeScript) that talks
 - [x] **Guardian Schedule**: `app/guardian-schedule.tsx` + `src/services/guardianSchedule.ts` — daily on/off window (time pickers + day chips), persisted; reconciled on app-active/Safety focus so Guardian auto-starts/stops within the window.
 - [x] **Reward Payout (promise)**: Lost Mode form now captures a reward amount + UPI ID + note, composed into the tag's `reward_text`, shown to whoever scans. (Actual escrow/auto-release requires a payment gateway on the backend — see backlog.)
 
-## Not built (platform limits — explained to user)
-- **Fake Shutdown Guard**: Intercepting power-off / surviving shutdown needs OS-level control + a custom Android Device-Admin native module; not possible in Expo/React Native app JS. Belongs to a dedicated native anti-theft build.
+## Implemented (2026-06 / feature update 3)
+- [x] **Scan History**: `app/scan-history.tsx` merges `GET /api/incidents` + `GET /api/alerts` into a chronological "who scanned my QR" timeline with type, note, relative time and location. Entry points: Safety tool + Security header clock icon. Defensive field mapping.
+- [x] **Guardian Auto-Arm**: `src/services/guardianControl.ts` — auto-arm toggle on the Guardian schedule screen; on app-active/Safety focus it checks GPS vs safe zones (haversine) and starts Guardian when you're outside every safe zone, stops when back inside. Combined cleanly with the daily Schedule.
+
+## Not built (hard limits — explained to user)
+- **Native Anti-Theft Build (Device Admin)**: needs a bare/native Android module compiled into a real build — cannot be authored/compiled/tested in this managed preview. App-side controls (register device, report intruder/sim-swap, lock/siren polling) are already wired; OS enforcement is a dedicated native build.
+- **Real Reward Escrow (Razorpay)**: escrow + payout must live server-side on a backend I control. This app is a frontend for the user's EXTERNAL backend, so I can't add order/payout endpoints; also needs a Razorpay merchant account, KYC and keys. The reward *promise* (amount + UPI shown to finder) is implemented.
 
 ## Backlog
 - P1: Native Device-Admin anti-theft module (remote lock/siren/intruder-selfie + shutdown-resistant tracking).
