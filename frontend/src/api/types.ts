@@ -117,6 +117,7 @@ export interface Tag {
   tag_type: string;
   description: string | null;
   blood_group: string | null;
+  reward_text: string | null;
   qr_id: string;
   lost_mode: boolean;
   created_at: string;

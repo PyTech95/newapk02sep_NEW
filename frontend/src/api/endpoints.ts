@@ -84,6 +84,14 @@ export const addVehicle = (number_plate: string, vehicle_type: string, make_mode
 export const listTags = () => api.get<Tag[]>("/tags").then((r) => r.data);
 export const addTag = (name: string, tag_type: string) =>
   api.post<Tag>("/tags", { name, tag_type }).then((r) => r.data);
+export const updateTag = (
+  id: string,
+  payload: { name: string; tag_type: string; reward_text?: string | null; description?: string | null },
+) => api.put<Tag>(`/tags/${id}`, payload).then((r) => r.data);
+export const setTagLost = (id: string, enabled: boolean) =>
+  api.post<Tag>(`/tags/${id}/lost_mode`, { enabled }).then((r) => r.data);
+export const setVehicleLost = (id: string, enabled: boolean) =>
+  api.post<Vehicle>(`/vehicles/${id}/lost_mode`, { enabled }).then((r) => r.data);
 
 export const listCards = () => api.get<Card[]>("/cards").then((r) => r.data);
 export const addCard = (display_name: string, title?: string, phone?: string) =>

@@ -15,6 +15,9 @@ import {
   listVehicles,
   reportIntruder,
   reportSimSwap,
+  setTagLost,
+  setVehicleLost,
+  updateTag,
 } from "@/src/api/endpoints";
 import { Card, Device, Tag, Vehicle } from "@/src/api/types";
 import { Chip } from "@/src/components/Chip";
@@ -145,6 +148,42 @@ function SmartQr() {
   const [busy, setBusy] = useState(false);
   const [f1, setF1] = useState("");
   const [f2, setF2] = useState("");
+  const [lostBusy, setLostBusy] = useState<string | null>(null);
+  const [rewardFor, setRewardFor] = useState<Tag | null>(null);
+  const [rewardText, setRewardText] = useState("");
+
+  const applyLost = async (item: any, enabled: boolean, reward?: string) => {
+    setLostBusy(item.id);
+    try {
+      if (kind === "vehicles") {
+        await setVehicleLost(item.id, enabled);
+      } else {
+        if (enabled && reward !== undefined) {
+          await updateTag(item.id, { name: item.name, tag_type: item.tag_type, reward_text: reward || null });
+        }
+        await setTagLost(item.id, enabled);
+      }
+      toast(enabled ? "Lost mode ON — scanners can now help" : "Lost mode turned off", enabled ? "success" : "info");
+      load();
+    } catch (e) {
+      toast(errMessage(e, "Could not update lost mode"), "error");
+    } finally {
+      setLostBusy(null);
+    }
+  };
+
+  const onToggleLost = (item: any) => {
+    if (item.lost_mode) {
+      applyLost(item, false);
+      return;
+    }
+    if (kind === "tags") {
+      setRewardText(item.reward_text || "");
+      setRewardFor(item);
+    } else {
+      applyLost(item, true);
+    }
+  };
 
   const load = useCallback(() => {
     listVehicles().then(setVehicles).catch(() => setVehicles([]));
@@ -189,19 +228,33 @@ function SmartQr() {
         list.map((item: any) => {
           const title = kind === "vehicles" ? item.number_plate : kind === "tags" ? item.name : item.display_name;
           const subtitle = kind === "vehicles" ? item.vehicle_type : kind === "tags" ? item.tag_type : (item.title || "ICE card");
+          const canLost = kind === "vehicles" || kind === "tags";
+          const isLost = !!item.lost_mode;
           return (
-            <Pressable key={item.id} onPress={() => openQr(item.qr_id, title, subtitle, colors.teal)} testID={`qr-item-${item.id}`}>
-              <GlassCard borderColor={colors.borderTeal} style={styles.qrRow}>
-                <View style={styles.qrThumb}>
-                  <Feather name="maximize" size={18} color={colors.teal} />
+            <GlassCard key={item.id} borderColor={isLost ? colors.borderRed : colors.borderTeal} style={styles.qrCard} testID={`qr-item-${item.id}`}>
+              <Pressable style={styles.qrRow} onPress={() => openQr(item.qr_id, title, subtitle, isLost ? colors.red : colors.teal)} testID={`qr-open-${item.id}`}>
+                <View style={[styles.qrThumb, isLost && { backgroundColor: tint.red }]}>
+                  <Feather name="maximize" size={18} color={isLost ? colors.red : colors.teal} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.name}>{title}</Text>
-                  <Text style={styles.meta}>{subtitle}{item.lost_mode ? " · LOST MODE" : ""}</Text>
+                  <Text style={styles.meta}>{subtitle}</Text>
                 </View>
+                {isLost && <Chip label="LOST" color={colors.red} tintBg={tint.red} icon="alert-circle" />}
                 <Feather name="chevron-right" size={20} color={colors.textDim} />
-              </GlassCard>
-            </Pressable>
+              </Pressable>
+              {isLost && item.reward_text ? (
+                <Text style={styles.reward} testID={`qr-reward-${item.id}`}>🎁 {item.reward_text}</Text>
+              ) : null}
+              {canLost && (
+                <Pressable style={styles.lostToggle} onPress={() => onToggleLost(item)} disabled={lostBusy === item.id} testID={`lost-toggle-${item.id}`}>
+                  <Feather name="flag" size={15} color={isLost ? colors.red : colors.textDim} />
+                  <Text style={[styles.lostText, { color: isLost ? colors.red : colors.textMuted }]}>
+                    {lostBusy === item.id ? "Updating…" : isLost ? "Turn off Lost Mode" : "Mark as lost"}
+                  </Text>
+                </Pressable>
+              )}
+            </GlassCard>
           );
         })
       )}
@@ -228,6 +281,20 @@ function SmartQr() {
           </>
         )}
       </OverlayForm>
+
+      <OverlayForm
+        visible={!!rewardFor}
+        title="Mark as lost"
+        color={colors.red}
+        submitLabel="Activate Lost Mode"
+        busy={lostBusy === rewardFor?.id}
+        onClose={() => setRewardFor(null)}
+        onSubmit={() => { const it = rewardFor!; setRewardFor(null); applyLost(it, true, rewardText); }}
+        testID="reward-form"
+      >
+        <Text style={styles.rewardHelp}>Anyone who scans this tag will see your reward note and can reach you privately — no personal details exposed.</Text>
+        <Field label="REWARD NOTE (optional)" icon="gift" placeholder="e.g. Reward ₹500 if found" value={rewardText} onChangeText={setRewardText} testID="reward-input" />
+      </OverlayForm>
     </ScrollView>
   );
 }
@@ -251,5 +318,10 @@ const styles = StyleSheet.create({
   name: { color: colors.text, fontFamily: fonts.displaySemi, fontSize: fontSize.base },
   meta: { color: colors.textDim, fontFamily: fonts.body, fontSize: fontSize.sm, marginTop: 2 },
   qrRow: { flexDirection: "row", alignItems: "center", gap: spacing.md },
+  qrCard: { gap: spacing.sm },
   qrThumb: { width: 42, height: 42, borderRadius: 10, backgroundColor: tint.teal, alignItems: "center", justifyContent: "center" },
+  lostToggle: { flexDirection: "row", alignItems: "center", gap: spacing.sm, alignSelf: "flex-start", paddingTop: spacing.xs, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border, width: "100%" },
+  lostText: { fontFamily: fonts.displaySemi, fontSize: fontSize.sm },
+  reward: { color: colors.textMuted, fontFamily: fonts.body, fontSize: fontSize.sm },
+  rewardHelp: { color: colors.textDim, fontFamily: fonts.body, fontSize: fontSize.sm, lineHeight: 18 },
 });

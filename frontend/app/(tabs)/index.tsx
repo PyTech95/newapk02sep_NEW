@@ -10,6 +10,7 @@ import { listContacts, listSafeZones, listSosEvents, startLiveShare, triggerSos 
 import { GlassCard } from "@/src/components/GlassCard";
 import { ScreenHeader } from "@/src/components/ScreenHeader";
 import { SOSButton } from "@/src/components/SOSButton";
+import { SosCountdown } from "@/src/components/SosCountdown";
 import { useAuth } from "@/src/context/AuthContext";
 import { useToast } from "@/src/context/ToastContext";
 import { colors, fonts, fontSize, radius, spacing, tint } from "@/src/theme";
@@ -20,7 +21,13 @@ export default function Home() {
   const toast = useToast();
   const router = useRouter();
   const [sosLoading, setSosLoading] = useState(false);
+  const [countdown, setCountdown] = useState(false);
   const [shareLoading, setShareLoading] = useState(false);
+
+  const startSos = () => {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+    setCountdown(true);
+  };
   const [blocked, setBlocked] = useState(false);
   const [stats, setStats] = useState({ sos: 0, contacts: 0, zones: 0 });
 
@@ -34,7 +41,6 @@ export default function Home() {
 
   const onSos = async () => {
     setSosLoading(true);
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
     const loc = await requestLocation();
     if (!loc.coords) {
       setBlocked(!!loc.blocked);
@@ -89,7 +95,7 @@ export default function Home() {
         <Text style={styles.prompt}>Tap and hold nothing — one tap on SOS instantly alerts your guardians with your live location.</Text>
 
         <View style={styles.sosWrap}>
-          <SOSButton onPress={onSos} loading={sosLoading} />
+          <SOSButton onPress={startSos} loading={sosLoading} />
         </View>
 
         {blocked && (
@@ -128,6 +134,11 @@ export default function Home() {
         <ActionRow icon="shield" color={colors.teal} title="Safe zones" sub="Get notified on arrive & leave" onPress={() => router.push("/safe-zones")} testID="action-zones" />
         <ActionRow icon="clock" color={colors.cyan} title="SOS history" sub="Review past alerts" onPress={() => router.push("/sos-events")} testID="action-history" />
       </ScrollView>
+      <SosCountdown
+        visible={countdown}
+        onCancel={() => { setCountdown(false); toast("SOS cancelled", "info"); }}
+        onComplete={() => { setCountdown(false); onSos(); }}
+      />
     </View>
   );
 }

@@ -13,7 +13,8 @@
       "bundleIdentifier": "com.emergent.mobilesafetyapp.r8ptmu",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Share your live location during an SOS",
-        "NSLocationAlwaysAndWhenInUseUsageDescription": "Keep family updated with your location"
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Keep family updated with your location",
+        "UIBackgroundModes": ["location"]
       }
     },
     "android": {
@@ -25,7 +26,10 @@
       "package": "com.emergent.mobilesafetyapp.r8ptmu",
       "permissions": [
         "ACCESS_FINE_LOCATION",
-        "ACCESS_COARSE_LOCATION"
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION",
+        "FOREGROUND_SERVICE",
+        "FOREGROUND_SERVICE_LOCATION"
       ]
     },
     "web": {
@@ -47,7 +51,10 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Share your live location during an SOS"
+          "locationWhenInUsePermission": "Share your live location during an SOS",
+          "locationAlwaysAndWhenInUsePermission": "Keep family updated with your live location",
+          "isAndroidBackgroundLocationEnabled": true,
+          "isAndroidForegroundServiceEnabled": true
         }
       ]
     ],

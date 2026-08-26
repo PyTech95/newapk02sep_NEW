@@ -11,6 +11,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { AuthProvider } from "@/src/context/AuthContext";
 import { ToastProvider } from "@/src/context/ToastContext";
 import { useIconFonts } from "@/src/hooks/use-icon-fonts";
+import "@/src/services/backgroundLocation";
 import { colors } from "@/src/theme";
 
 // Disable logbox errors etc so that users can see the app

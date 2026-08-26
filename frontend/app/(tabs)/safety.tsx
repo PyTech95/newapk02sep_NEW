@@ -1,14 +1,15 @@
 import { Feather } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
-import { useCallback, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useCallback, useEffect, useState } from "react";
+import { Linking, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
 
 import { errMessage } from "@/src/api/client";
 import { listContacts, listSafeZones, listSosEvents, startLiveShare } from "@/src/api/endpoints";
 import { GlassCard } from "@/src/components/GlassCard";
 import { ScreenHeader } from "@/src/components/ScreenHeader";
 import { useToast } from "@/src/context/ToastContext";
-import { colors, fonts, fontSize, spacing } from "@/src/theme";
+import { isGuardianRunning, startGuardian, stopGuardian } from "@/src/services/backgroundLocation";
+import { colors, fonts, fontSize, spacing, tint } from "@/src/theme";
 import { requestLocation } from "@/src/utils/location";
 
 export default function Safety() {
@@ -16,6 +17,35 @@ export default function Safety() {
   const toast = useToast();
   const [counts, setCounts] = useState({ contacts: 0, zones: 0, sos: 0 });
   const [sharing, setSharing] = useState(false);
+  const [guardian, setGuardian] = useState(false);
+  const [guardianBusy, setGuardianBusy] = useState(false);
+
+  useEffect(() => {
+    isGuardianRunning().then(setGuardian);
+  }, []);
+
+  const onGuardian = async (value: boolean) => {
+    setGuardianBusy(true);
+    try {
+      if (value) {
+        const res = await startGuardian();
+        if (res.ok) {
+          setGuardian(true);
+          toast("Guardian on — family sees your live trail", "success");
+        } else {
+          setGuardian(false);
+          toast(res.error ?? "Could not start Guardian", "error");
+          if (res.blocked && Platform.OS !== "web") Linking.openSettings();
+        }
+      } else {
+        await stopGuardian();
+        setGuardian(false);
+        toast("Guardian turned off", "info");
+      }
+    } finally {
+      setGuardianBusy(false);
+    }
+  };
 
   const load = useCallback(() => {
     Promise.all([listContacts(), listSafeZones(), listSosEvents()])
@@ -60,6 +90,24 @@ export default function Safety() {
           </GlassCard>
         </Pressable>
 
+        <GlassCard borderColor={colors.borderPurple} style={styles.guardian} testID="guardian-card">
+          <View style={[styles.bubble, { backgroundColor: tint.purple }]}>
+            <Feather name="shield" size={22} color={colors.purple} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.heroTitle}>Background Guardian</Text>
+            <Text style={styles.heroSub}>Pings your location every 60s so family sees your live trail — even when the app is closed</Text>
+          </View>
+          <Switch
+            value={guardian}
+            disabled={guardianBusy}
+            onValueChange={onGuardian}
+            trackColor={{ true: colors.purple, false: colors.border }}
+            thumbColor="#fff"
+            testID="guardian-switch"
+          />
+        </GlassCard>
+
         <Tool icon="users" color={colors.purple} title="Emergency contacts" sub={`${counts.contacts} trusted contact(s)`} onPress={() => router.push("/contacts")} testID="safety-contacts" />
         <Tool icon="map-pin" color={colors.teal} title="Safe zones" sub={`${counts.zones} zone(s) monitored`} onPress={() => router.push("/safe-zones")} testID="safety-zones" />
         <Tool icon="clock" color={colors.cyan} title="SOS history" sub={`${counts.sos} past alert(s)`} onPress={() => router.push("/sos-events")} testID="safety-history" />
@@ -90,6 +138,7 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
   scroll: { padding: spacing.lg, gap: spacing.md, paddingBottom: spacing.xxxl },
   hero: { flexDirection: "row", alignItems: "center", gap: spacing.md },
+  guardian: { flexDirection: "row", alignItems: "center", gap: spacing.md },
   heroTitle: { color: colors.text, fontFamily: fonts.displaySemi, fontSize: fontSize.lg },
   heroSub: { color: colors.textDim, fontFamily: fonts.body, fontSize: fontSize.sm, marginTop: 2 },
   bubble: { width: 44, height: 44, borderRadius: 12, alignItems: "center", justifyContent: "center" },

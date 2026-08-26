@@ -42,8 +42,12 @@ Build a native mobile app "NekSathi" (Expo + expo-router, TypeScript) that talks
 - Anti-theft remote lock/siren/intruder-selfie (Device Admin).
 - Family live map (react-native-maps) — web shows a fallback panel.
 
+## Implemented (2026-06 / feature update)
+- [x] **Panic Countdown**: SOS now shows a cancelable 3-2-1 countdown (haptic ticks) before firing — prevents accidental alerts. (`src/components/SosCountdown.tsx`, Home)
+- [x] **Lost Mode Toggle**: Vehicles & Tags can be flipped to Lost Mode (`POST /{tags|vehicles}/{id}/lost_mode`); tags support a reward note (`PUT /tags/{id}`) shown to whoever scans. Red LOST badge + reward on the row. (Security → Smart QR)
+- [x] **Background Guardian**: Safety toggle starts a 60s foreground-service location ping (`POST /me/location` with battery) via expo-task-manager + expo-location background updates — keeps family's live trail even when app is closed. Native-build only (not Expo Go/web). (`src/services/backgroundLocation.ts`, Safety)
+
 ## Backlog
-- P1: Background/foreground-service location ping (`POST /me/location` every 60s) — native build.
 - P1: Anti-theft native Device-Admin module (lock/siren/intruder capture).
 - P2: Richer QR item editing (photos, lost-mode toggle, ICE medical fields).
 - P2: Map clustering + tap-to-focus a member; safe-zone drawing on map.
