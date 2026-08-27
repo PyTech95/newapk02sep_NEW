@@ -342,9 +342,21 @@ def test_scan_page_vehicle(vehicle):
     assert data["kind"] == "vehicle"
     assert data["number_plate"] == vehicle["number_plate"]
     assert data["qr_id"] == vehicle["qr_id"]
+    # category-specific vehicle keys required by SCAN_PAGE renderVehicle()
+    for k in ("vehicle_type", "make_model", "color", "lost_mode", "reward_text"):
+        assert k in data, f"vehicle scan DATA missing '{k}'"
+    # embedded reason buttons must be present so bystander can choose one
+    for reason_html in ("wrong_parking", "accident", "lights_on", "theft"):
+        assert reason_html in r.text, f"reason button '{reason_html}' missing"
+    # posting to /api/public/qr/{qrid}/incident (as the HTML buttons do) works
+    inc = requests.post(f"{BASE_URL}/api/public/qr/{vehicle['qr_id']}/incident",
+                        json={"type": "wrong_parking",
+                              "scanner_note": "TEST_scanpage_wrongpark",
+                              "scanner_phone": "+919911223344"}, timeout=20)
+    assert inc.status_code == 200, inc.text
 
 
-def test_scan_page_tag(tag):
+def test_scan_page_tag(tag, headers):
     r = requests.get(f"{BASE_URL}/api/s/{tag['qr_id']}", timeout=20)
     assert r.status_code == 200
     assert "text/html" in r.headers.get("content-type", "").lower()
@@ -353,17 +365,46 @@ def test_scan_page_tag(tag):
     # tag may have been renamed by test_tag_update_and_lost; just assert non-empty
     assert data.get("name")
     assert data.get("tag_type") == tag["tag_type"]
-    # reward_text and lost_mode keys must be present (may be null/false)
-    assert "reward_text" in data and "lost_mode" in data
+    # category-specific tag keys required by SCAN_PAGE renderTag()
+    for k in ("blood_group", "description", "reward_text", "lost_mode"):
+        assert k in data, f"tag scan DATA missing '{k}'"
+    # "Send to owner" report form must target /api/public/tag/{qrid}/alert (URL built at runtime with QRID)
+    assert "/api/public/tag/" in r.text and "/alert" in r.text
+    assert tag["qr_id"] in r.text  # embedded as QRID constant
+    # scanner posts a 'found' alert -> owner receives it in /api/alerts
+    ta = requests.post(f"{BASE_URL}/api/public/tag/{tag['qr_id']}/alert",
+                       json={"type": "found",
+                             "scanner_note": "TEST_scanpage_tag_found",
+                             "scanner_phone": "+919911005500"}, timeout=20)
+    assert ta.status_code == 200, ta.text
+    alerts = requests.get(f"{BASE_URL}/api/alerts", headers=headers, timeout=20).json()
+    assert any("TEST_scanpage_tag_found" in (a.get("message") or "") for a in alerts)
 
 
-def test_scan_page_card(card):
+def test_scan_page_card(card, headers):
     r = requests.get(f"{BASE_URL}/api/s/{card['qr_id']}", timeout=20)
     assert r.status_code == 200
     assert "text/html" in r.headers.get("content-type", "").lower()
     data = _extract_scan_data(r.text)
     assert data["kind"] == "card"
     assert data["display_name"] == card["display_name"]
+    # category-specific card keys required by SCAN_PAGE renderCard()
+    for k in ("title", "company", "phone"):
+        assert k in data, f"card scan DATA missing '{k}'"
+    # Call button (tel: link) must be rendered when phone present
+    if data.get("phone"):
+        assert f"tel:{data['phone']}" in r.text or "class=\"call\"" in r.text
+    # message form must target /api/public/card/{qrid}/message (URL built at runtime with QRID)
+    assert "/api/public/card/" in r.text and "/message" in r.text
+    assert card["qr_id"] in r.text
+    # scanner sends message -> owner receives it in /api/alerts
+    cm = requests.post(f"{BASE_URL}/api/public/card/{card['qr_id']}/message",
+                       json={"name": "TEST_scanpage_scanner",
+                             "phone": "+919922334455",
+                             "message": "TEST_scanpage_card_msg"}, timeout=20)
+    assert cm.status_code == 200, cm.text
+    alerts = requests.get(f"{BASE_URL}/api/alerts", headers=headers, timeout=20).json()
+    assert any("TEST_scanpage_card_msg" in (a.get("message") or "") for a in alerts)
 
 
 def test_scan_page_unknown_qrid_returns_html_not_json_404():

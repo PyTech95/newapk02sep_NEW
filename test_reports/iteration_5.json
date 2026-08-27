@@ -1,0 +1,47 @@
+{
+  "summary": "Verified the upgraded category-specific /api/s/{qrid} scan landing page end-to-end against the in-workspace backend at EXPO_PUBLIC_API_URL. Backend pytest: 26/26 pass. Strengthened the three scan-page tests to also assert the new category-specific DATA keys (vehicle: number_plate/vehicle_type/make_model/color/lost_mode/reward_text; tag: name/tag_type/blood_group/description/reward_text/lost_mode; card: display_name/title/company/phone) AND that the finder POST endpoints wired into the HTML page actually create incidents/alerts visible on the owner's dashboard. Live browser verification (390x844): (1) VEHICLE qr → red LOST banner, plate title, 5 reason buttons (Wrong parking / Accident / Lights / Suspicious / I found it), tapping a reason reveals the 'Send to owner' form with reason-specific placeholder and location-share checkbox; POST /api/public/qr/{qr}/incident 200 and count increments in owner GET /api/incidents. (2) TAG qr (lost + reward) → red LOST banner, name 'TEST_Bag_Updated', reward chip '🎁 TEST_reward_500', description pill, 'FOUND THIS? LET THE OWNER KNOW' + Send-to-owner form; POST /api/public/tag/{qr}/alert type=found 200 and message shows up in owner GET /api/alerts. (3) CARD qr → purple ICE banner '🪪 Emergency / contact card', green 'Call TEST_Card' anchor with href=tel:+911111111111, title/company subtitle, and the message form with Name/Phone/Message → POST /api/public/card/{qr}/message 200 and message shows up in owner GET /api/alerts. (4) Unknown qr /api/s/garbage-unknown-id → 200 text/html with 'Not registered' friendly card (DATA=null), NOT a raw JSON 404. Regression: JSON resolvers /api/public/qr/{qr} and /api/public/card/{qr} still 200 for real ids and /api/public/qr/deadbeef0000 still 404. Frontend light regression: login with demo@neksathi.app/demo1234 lands on /security with Smart QR segment pre-selected, Vehicles/Tags/ICE Cards chips, seeded MH01AB1234 visible plus TEST_* lost vehicles, bottom-tab order Security→Home→Family→Safety→Profile intact, no red screen, no page errors.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_neksathi_api.py",
+    "/app/test_reports/pytest/neksathi_api.xml",
+    "/app/test_reports/scan_vehicle.png",
+    "/app/test_reports/scan_tag.png",
+    "/app/test_reports/scan_card.png",
+    "/app/test_reports/scan_unknown.png",
+    "/app/test_reports/frontend_security_landing.png"
+  ],
+  "action_items": [
+    "No functional fixes required. Category-specific scan page (vehicle reasons / tag found+reward / card call+message) works end-to-end, all POST /api/public/* endpoints wired by the HTML page succeed, and unknown QR still returns friendly HTML.",
+    "(Nice-to-have) The scan page currently has no <meta name='theme-color'>; adding one (e.g., #06060f matching --bg) would make the browser chrome match on iOS/Android when a bystander opens the QR link.",
+    "(Nice-to-have) On the card page, if DATA.phone is missing there is no visible fallback beyond the message form — main agent may want to render a subtle 'No direct number shared' pill so the intent is clearer."
+  ],
+  "critical_code_review_comments": [
+    "server.py:788-956 (SCAN_PAGE) is now ~170 lines of HTML+CSS+JS. It's a single Python string with double-escaped JS quotes (isn\\'t, \\''+sendUrl+'\\'). Rendering was verified via browser and pytest — no SyntaxError, no console errors. If it grows further consider moving to a separate .html template loaded from disk to avoid quoting hazards.",
+    "server.py:884-902 renderVehicle emits distinct reason keys (wrong_parking, accident, lights_on, theft, found, other). Backend POST /api/public/qr/{qr}/incident accepts arbitrary `type` string so all 5 buttons work — verified for wrong_parking + accident in this run.",
+    "server.py:918-935 renderCard hard-codes the message form; DATA.phone is embedded raw in a tel: href — currently HTML-escaped via esc(). Phone values in DB should still be validated at write-time (they already are via Pydantic).",
+    "server.py:950 render() fallback string 'This QR code isn\\'t linked…' — single-quote is JS-escaped, JSON.parse embeds DATA=null correctly, browser confirmed no error.",
+    "app/(tabs)/_layout.tsx + app/(tabs)/security.tsx — unchanged since iteration_4; login still lands on Security → Smart QR (confirmed with data-testid=login-submit-button)."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_neksathi_api.py",
+    "/app/test_reports/pytest/neksathi_api.xml",
+    "/app/test_reports/iteration_5.json",
+    "/app/test_reports/scan_vehicle.png",
+    "/app/test_reports/scan_tag.png",
+    "/app/test_reports/scan_card.png",
+    "/app/test_reports/scan_unknown.png",
+    "/app/test_reports/frontend_security_landing.png"
+  ],
+  "success_rate": {"backend": "100% (26/26)", "frontend": "100% (scan pages for vehicle/tag/card/unknown all render as designed; login → Security → Smart QR regression clean)"},
+  "seed_data_creation": "Reused demo user's existing vehicles/tags/cards. Test run added transient TEST_* incidents/alerts (scanner_note 'TEST_scanpage_wrongpark', 'TEST_scanpage_tag_found', 'TEST_scanpage_card_msg') to demo user's dashboard for verification.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "The scan page is now category-aware. When adding new categories (or new reason buttons for vehicle), keep DATA.kind in {vehicle, tag_guardian, card} and add a corresponding renderX() branch in render(). The client fetches are same-origin relative POSTs to /api/public/qr|tag|card/{qr}, so no CORS setup is needed. Playwright note: the frontend login screen uses testIDs login-email-input / login-password-input / login-submit-button — use those directly instead of role=button (get_by_role returns 0 matches on Expo RN-Web).",
+  "rca_of_issue": "N/A — this iteration was a feature verification, not a bug hunt. Prior root cause (native camera QR opening a JSON 404) remains fixed by GET /api/s/{qrid} always returning 200 text/html with an embedded JSON DATA constant; this iteration confirmed the upgraded UX (category-specific actions + owner reachability) works and does not regress the existing JSON resolvers."
+}

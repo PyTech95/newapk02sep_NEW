@@ -791,47 +791,60 @@ SCAN_PAGE = """<!DOCTYPE html>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
 <title>NekSathi — Scan</title>
 <style>
-  :root{--bg:#06060f;--card:#12121f;--line:#242438;--text:#eef;--dim:#9aa;--teal:#22d3ee;--red:#ff4d5e;--green:#34d399;--amber:#fbbf24;}
+  :root{--bg:#06060f;--card:#12121f;--line:#242438;--text:#eef;--dim:#98a0b8;--teal:#22d3ee;--red:#ff4d5e;--green:#34d399;--amber:#fbbf24;--purple:#a78bfa;}
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-  body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;padding:20px 16px 40px}
+  body{margin:0;background:radial-gradient(1200px 500px at 50% -10%,rgba(34,211,238,.10),transparent),var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;padding:22px 16px 40px;min-height:100vh}
   .wrap{max-width:460px;margin:0 auto}
-  .brand{text-align:center;font-weight:800;font-size:26px;letter-spacing:.5px;margin:6px 0 2px}
+  .brand{text-align:center;font-weight:800;font-size:26px;letter-spacing:.5px;margin:4px 0 2px}
   .brand span{color:var(--teal)}
-  .tag{text-align:center;color:var(--dim);font-size:13px;margin-bottom:18px}
+  .tag{text-align:center;color:var(--dim);font-size:12.5px;margin-bottom:16px}
   .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px;margin-bottom:14px}
-  .banner{border-radius:14px;padding:14px 16px;margin-bottom:14px;font-weight:600}
+  .banner{border-radius:14px;padding:13px 15px;margin-bottom:14px;font-weight:600;font-size:14px}
   .banner.lost{background:rgba(255,77,94,.12);border:1px solid rgba(255,77,94,.4);color:#ffb3ba}
   .banner.ok{background:rgba(52,211,153,.10);border:1px solid rgba(52,211,153,.3);color:#a7f3d0}
-  h1{font-size:22px;margin:2px 0 4px}
-  .sub{color:var(--dim);font-size:14px;text-transform:capitalize}
+  .banner.ice{background:rgba(167,139,250,.12);border:1px solid rgba(167,139,250,.4);color:#ddd0ff}
+  h1{font-size:23px;margin:2px 0 4px;letter-spacing:.5px}
+  .sub{color:var(--dim);font-size:14px}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+  .pill{background:#0c0c18;border:1px solid var(--line);border-radius:999px;padding:6px 11px;font-size:12.5px;color:var(--dim)}
   .reward{margin-top:12px;background:rgba(251,191,36,.10);border:1px solid rgba(251,191,36,.35);color:#fde68a;border-radius:12px;padding:12px 14px;font-size:14px}
-  label{display:block;font-size:12px;color:var(--dim);margin:14px 0 6px;letter-spacing:.4px;text-transform:uppercase}
+  .qh{font-size:13px;color:var(--dim);margin:16px 0 8px;font-weight:600}
+  .reasons{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .reason{display:flex;align-items:center;gap:9px;background:#0c0c18;border:1px solid var(--line);border-radius:14px;padding:13px 12px;font-size:14px;font-weight:600;cursor:pointer;color:var(--text)}
+  .reason .ic{font-size:18px}
+  .reason.sel{border-color:var(--teal);background:rgba(34,211,238,.10);color:#bff5ff}
+  .reason.full{grid-column:1/3}
+  label{display:block;font-size:12px;color:var(--dim);margin:16px 0 6px;letter-spacing:.4px;text-transform:uppercase}
   input,textarea{width:100%;background:#0c0c18;border:1px solid var(--line);border-radius:12px;color:var(--text);padding:12px 14px;font-size:15px;font-family:inherit}
-  textarea{min-height:80px;resize:vertical}
+  textarea{min-height:78px;resize:vertical}
   button{width:100%;border:0;border-radius:14px;padding:15px;font-size:16px;font-weight:700;margin-top:16px;cursor:pointer}
+  button:disabled{opacity:.6}
   .primary{background:var(--teal);color:#04121a}
-  .call{display:block;text-align:center;background:var(--green);color:#04120c;border-radius:14px;padding:15px;font-size:16px;font-weight:700;margin-top:10px;text-decoration:none}
-  .ghost{background:transparent;border:1px solid var(--line);color:var(--text)}
-  .loc{display:flex;align-items:center;gap:10px;margin-top:14px;color:var(--dim);font-size:14px}
+  .call{display:flex;align-items:center;justify-content:center;gap:8px;background:var(--green);color:#04120c;border-radius:14px;padding:15px;font-size:16px;font-weight:700;margin-top:12px;text-decoration:none}
+  .loc{display:flex;align-items:center;gap:10px;margin-top:14px;color:var(--dim);font-size:13.5px}
   .loc input{width:auto}
+  .priv{display:flex;gap:8px;align-items:flex-start;margin-top:14px;color:var(--dim);font-size:12.5px;line-height:1.5}
   .done{text-align:center;padding:26px 10px}
-  .done .ico{font-size:44px}
-  .muted{color:var(--dim);font-size:13px;text-align:center;margin-top:14px;line-height:1.5}
-  .err{color:var(--red);font-size:14px;text-align:center;padding:30px 10px}
+  .done .ico{font-size:46px}
+  .muted{color:var(--dim);font-size:12.5px;text-align:center;margin-top:16px;line-height:1.5}
+  .err{text-align:center;padding:26px 10px}
+  .err .ico{font-size:40px}
+  .hide{display:none}
 </style></head>
 <body><div class="wrap">
   <div class="brand">Nek<span>Sathi</span></div>
   <div class="tag">Har Musibat Mein, Ek Nek Sathi</div>
   <div id="app"><div class="muted">Loading…</div></div>
-  <div class="muted">Powered by NekSathi — a helping hand for lost items &amp; people.</div>
+  <div class="muted">🔒 The owner's phone number stays private. Powered by NekSathi.</div>
 </div>
 <script>
 const DATA = __DATA__;
 const QRID = "__QRID__";
 const app = document.getElementById("app");
-let coords = null;
+let coords = null, reason = null;
 
 function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+function val(id){const e=document.getElementById(id);return e?e.value.trim():"";}
 
 function grabLocation(cb){
   if(!navigator.geolocation){cb();return;}
@@ -840,73 +853,105 @@ function grabLocation(cb){
     ()=>cb(),{enableHighAccuracy:true,timeout:8000}
   );
 }
-
 function done(msg){
-  app.innerHTML='<div class="card"><div class="done"><div class="ico">✅</div><h1>Thank you!</h1><p class="sub" style="text-transform:none">'+esc(msg)+'</p></div></div>';
+  app.innerHTML='<div class="card"><div class="done"><div class="ico">✅</div><h1>Thank you!</h1><p class="sub" style="text-transform:none;margin-top:8px">'+esc(msg)+'</p></div></div>';
+  window.scrollTo(0,0);
 }
-
 async function post(url, body){
   const r = await fetch(url,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
   if(!r.ok) throw new Error("failed");
   return r.json();
 }
-
-function render(){
-  if(!DATA){app.innerHTML='<div class="card"><div class="err">This code isn\\'t registered with NekSathi yet.</div></div>';return;}
-  const k = DATA.kind;
-  const lost = !!DATA.lost_mode;
-  let title="", sub="", banner="";
-  if(k==="vehicle"){title=DATA.number_plate; sub=DATA.vehicle_type;}
-  else if(k==="tag_guardian"){title=DATA.name; sub=DATA.tag_type;}
-  else if(k==="card"){title=DATA.display_name; sub=DATA.title||"ICE card";}
-
-  if(k==="card"){
-    let phoneBtn = DATA.phone ? '<a class="call" href="tel:'+esc(DATA.phone)+'">📞 Call '+esc(title)+'</a>' : '';
-    app.innerHTML =
-      '<div class="banner ok">🪪 Emergency / contact card</div>'+
-      '<div class="card"><h1>'+esc(title)+'</h1><div class="sub">'+esc(sub)+'</div>'+phoneBtn+
-      '<label>Your name</label><input id="f_name" placeholder="Your name"/>'+
-      '<label>Your phone (optional)</label><input id="f_phone" placeholder="So they can reach you"/>'+
-      '<label>Message</label><textarea id="f_msg" placeholder="Write a message to the owner"></textarea>'+
-      '<button class="primary" id="send">Send message</button></div>';
-    document.getElementById("send").onclick=async()=>{
-      const b={name:val("f_name"),phone:val("f_phone"),message:val("f_msg")};
-      try{await post("/api/public/card/"+QRID+"/message",b);done("Your message has been delivered to the owner.");}
-      catch(e){alert("Could not send. Please try again.");}
-    };
-    return;
-  }
-
-  banner = lost
-    ? '<div class="banner lost">🔴 This '+(k==="vehicle"?"vehicle":"item")+' is reported LOST. Please help return it.</div>'
-    : '<div class="banner ok">🟢 This '+(k==="vehicle"?"vehicle":"item")+' is protected by NekSathi.</div>';
-  let reward = (lost && DATA.reward_text) ? '<div class="reward">🎁 '+esc(DATA.reward_text)+'</div>' : '';
-
-  const isTag = k==="tag_guardian";
-  const postUrl = isTag ? "/api/public/tag/"+QRID+"/alert" : "/api/public/qr/"+QRID+"/incident";
-  const cta = lost ? "Notify the owner I found this" : "Message the owner";
-
-  app.innerHTML =
-    banner+
-    '<div class="card"><h1>'+esc(title)+'</h1><div class="sub">'+esc(sub)+'</div>'+reward+
-    '<label>Your phone (so the owner can reach you)</label><input id="f_phone" placeholder="+91…"/>'+
-    '<label>Note</label><textarea id="f_note" placeholder="'+(isTag?"e.g. Found near the metro station":"e.g. Your car lights are on / found parked here")+'"></textarea>'+
+function sendReport(url, extraType){
+  const btn=document.getElementById("send"); btn.disabled=true; btn.textContent="Sending…";
+  const share=document.getElementById("f_share").checked;
+  const fire=async()=>{
+    const b={type:extraType||reason||"other",scanner_note:val("f_note")||null,scanner_phone:val("f_phone")||null,
+             scanner_lat:coords?coords.lat:null,scanner_lng:coords?coords.lng:null};
+    try{await post(url,b);done("The owner has been alerted"+(coords?" with your location":"")+". They may call you back on a private line. Thank you for your kindness!");}
+    catch(e){btn.disabled=false;btn.textContent="Send to owner";alert("Could not send. Please try again.");}
+  };
+  if(share) grabLocation(fire); else fire();
+}
+function reportForm(sendUrl, extraType){
+  return '<label>Message to the owner</label><textarea id="f_note" placeholder="Describe what you see (optional)"></textarea>'+
+    '<label>Your phone (optional)</label><input id="f_phone" placeholder="So the owner can call you back privately"/>'+
     '<div class="loc"><input type="checkbox" id="f_share" checked/><span>Share my current location with the owner</span></div>'+
-    '<button class="primary" id="send">'+cta+'</button></div>';
+    '<button class="primary" id="send" onclick="sendReport(\\''+sendUrl+'\\''+(extraType?",'"+extraType+"'":"")+')">Send to owner</button>'+
+    '<div class="priv">🔒<span>Your report is delivered privately through NekSathi — the owner never sees your number unless you share it.</span></div>';
+}
 
-  document.getElementById("send").onclick=()=>{
-    const btn=document.getElementById("send");btn.disabled=true;btn.textContent="Sending…";
-    const share=document.getElementById("f_share").checked;
-    const fire=async()=>{
-      const b={type:"found",scanner_note:val("f_note")||null,scanner_phone:val("f_phone")||null,
-               scanner_lat:coords?coords.lat:null,scanner_lng:coords?coords.lng:null};
-      try{await post(postUrl,b);done("The owner has been alerted"+(coords?" with your location":"")+". Thank you for your kindness!");}
-      catch(e){btn.disabled=false;btn.textContent=cta;alert("Could not send. Please try again.");}
-    };
-    if(share) grabLocation(fire); else fire();
+function renderVehicle(){
+  const lost=!!DATA.lost_mode;
+  const bits=[DATA.vehicle_type,DATA.make_model,DATA.color].filter(Boolean).map(esc);
+  const banner = lost
+    ? '<div class="banner lost">🔴 This vehicle is reported <b>LOST/STOLEN</b>. Please help return it.</div>'
+    : '<div class="banner ok">🟢 This vehicle is protected by NekSathi. Reach the owner privately.</div>';
+  const reward = (lost && DATA.reward_text) ? '<div class="reward">🎁 '+esc(DATA.reward_text)+'</div>' : '';
+  let reasons =
+    '<div class="reason full" data-r="wrong_parking"><span class="ic">🅿️</span> Wrong / blocking parking</div>'+
+    '<div class="reason" data-r="accident"><span class="ic">💥</span> Accident</div>'+
+    '<div class="reason" data-r="lights_on"><span class="ic">💡</span> Lights / window</div>'+
+    '<div class="reason" data-r="theft"><span class="ic">🚨</span> Suspicious</div>'+
+    (lost?'<div class="reason" data-r="found"><span class="ic">🔎</span> I found it</div>':'<div class="reason" data-r="other"><span class="ic">✉️</span> Other</div>');
+  app.innerHTML = banner+
+    '<div class="card"><h1>'+esc(DATA.number_plate)+'</h1><div class="sub">'+(bits.join(' · ')||'Vehicle')+'</div>'+reward+
+    '<div class="qh">WHY ARE YOU REACHING THE OWNER?</div><div class="reasons" id="reasons">'+reasons+'</div>'+
+    '<div id="formbox" class="hide">'+reportForm("/api/public/qr/"+QRID+"/incident")+'</div></div>';
+  wireReasons();
+}
+function renderTag(){
+  const lost=!!DATA.lost_mode;
+  const banner = lost
+    ? '<div class="banner lost">🔴 This item is reported <b>LOST</b>. Please help return it to the owner.</div>'
+    : '<div class="banner ok">🟢 This item is protected by NekSathi.</div>';
+  const reward = (lost && DATA.reward_text) ? '<div class="reward">🎁 '+esc(DATA.reward_text)+'</div>' : '';
+  let pills='';
+  if(DATA.blood_group) pills+='<span class="pill">🩸 '+esc(DATA.blood_group)+'</span>';
+  if(DATA.description) pills+='<span class="pill">'+esc(DATA.description)+'</span>';
+  app.innerHTML = banner+
+    '<div class="card"><h1>'+esc(DATA.name)+'</h1><div class="sub" style="text-transform:capitalize">'+esc(DATA.tag_type||'Tag')+'</div>'+
+    (pills?'<div class="chips">'+pills+'</div>':'')+reward+
+    '<div class="qh">FOUND THIS? LET THE OWNER KNOW</div>'+
+    reportForm("/api/public/tag/"+QRID+"/alert","found")+'</div>';
+}
+function renderCard(){
+  const bits=[DATA.title,DATA.company].filter(Boolean).map(esc);
+  let call = DATA.phone ? '<a class="call" href="tel:'+esc(DATA.phone)+'">📞 Call '+esc(DATA.display_name)+'</a>' : '';
+  app.innerHTML =
+    '<div class="banner ice">🪪 Emergency / contact card</div>'+
+    '<div class="card"><h1>'+esc(DATA.display_name)+'</h1><div class="sub">'+(bits.join(' · ')||'Contact card')+'</div>'+call+
+    '<div class="qh">SEND A MESSAGE</div>'+
+    '<label>Your name</label><input id="f_name" placeholder="Your name"/>'+
+    '<label>Your phone (optional)</label><input id="f_phone" placeholder="So they can reach you"/>'+
+    '<label>Message</label><textarea id="f_msg" placeholder="Write a message to the owner"></textarea>'+
+    '<button class="primary" id="cardsend">Send message</button></div>';
+  document.getElementById("cardsend").onclick=async()=>{
+    const btn=document.getElementById("cardsend"); btn.disabled=true; btn.textContent="Sending…";
+    try{await post("/api/public/card/"+QRID+"/message",{name:val("f_name"),phone:val("f_phone"),message:val("f_msg")});
+        done("Your message has been delivered to the owner.");}
+    catch(e){btn.disabled=false;btn.textContent="Send message";alert("Could not send. Please try again.");}
   };
 }
-function val(id){const e=document.getElementById(id);return e?e.value.trim():"";}
+function wireReasons(){
+  const box=document.getElementById("formbox");
+  document.querySelectorAll("#reasons .reason").forEach(el=>{
+    el.onclick=()=>{
+      document.querySelectorAll("#reasons .reason").forEach(x=>x.classList.remove("sel"));
+      el.classList.add("sel"); reason=el.getAttribute("data-r"); box.classList.remove("hide");
+      const note=document.getElementById("f_note");
+      const hints={wrong_parking:"e.g. Your vehicle is blocking a gate at ...",accident:"e.g. Minor accident near ...",lights_on:"e.g. Your headlights are on / window open",theft:"e.g. Someone is tampering with your vehicle",found:"e.g. Found parked at ...",other:""};
+      if(note) note.placeholder=hints[reason]||"Describe what you see (optional)";
+      box.scrollIntoView({behavior:"smooth",block:"nearest"});
+    };
+  });
+}
+function render(){
+  if(!DATA){app.innerHTML='<div class="card"><div class="err"><div class="ico">🔍</div><h1>Not registered</h1><p class="sub" style="text-transform:none;margin-top:8px">This QR code isn\\'t linked to a NekSathi item yet.</p></div></div>';return;}
+  if(DATA.kind==="vehicle") return renderVehicle();
+  if(DATA.kind==="card") return renderCard();
+  return renderTag();
+}
 render();
 </script></body></html>"""
 
@@ -914,16 +959,18 @@ render();
 async def _resolve_scan(qrid: str):
     v = await db.vehicles.find_one({"qr_id": qrid})
     if v:
-        return {"kind": "vehicle", "number_plate": v["number_plate"], "vehicle_type": v["vehicle_type"],
+        return {"kind": "vehicle", "number_plate": v["number_plate"], "vehicle_type": v.get("vehicle_type"),
+                "make_model": v.get("make_model"), "color": v.get("color"),
                 "lost_mode": v.get("lost_mode", False), "reward_text": v.get("reward_text"), "qr_id": qrid}
     t = await db.tags.find_one({"qr_id": qrid})
     if t:
-        return {"kind": "tag_guardian", "name": t["name"], "tag_type": t["tag_type"],
+        return {"kind": "tag_guardian", "name": t["name"], "tag_type": t.get("tag_type"),
+                "blood_group": t.get("blood_group"), "description": t.get("description"),
                 "lost_mode": t.get("lost_mode", False), "reward_text": t.get("reward_text"), "qr_id": qrid}
     c = await db.cards.find_one({"qr_id": qrid})
     if c:
         return {"kind": "card", "display_name": c["display_name"], "title": c.get("title"),
-                "phone": c.get("phone"), "qr_id": qrid}
+                "company": c.get("company"), "phone": c.get("phone"), "qr_id": qrid}
     return None
 
 

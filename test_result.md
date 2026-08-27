@@ -177,3 +177,28 @@ test_plan:
 agent_communication:
     -agent: "main"
     -message: "Fixed reported production bug: scanning a vehicle/tag QR in a browser returned 'detail not found'. Backend now serves GET /api/s/{qrid} HTML finder page. Please test backend scan page for vehicle/tag/card (valid + unknown qr) and that the finder POSTs (incident/alert/message) work. Also verify frontend lands on Security/Smart QR and the in-app camera scan still routes correctly. Demo: demo@neksathi.app / demo1234."
+
+## Session (fork) — Scan page upgraded to match old app (category-specific finder flow)
+backend:
+  - task: "Rich public scan page (vehicle reasons / tag found / card message)"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py (GET /api/s/{qrid} HTML)"
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "User wanted the scan page to match their old web app's look & actions. Rewrote SCAN_PAGE HTML: VEHICLE shows reason buttons (wrong_parking/accident/lights_on/theft/found) -> note+phone+location -> POST /api/public/qr/{id}/incident. TAG shows blood_group/description pills + lost banner/reward -> POST /api/public/tag/{id}/alert (type=found). CARD (ICE) shows title/company + Call button + message form -> POST /api/public/card/{id}/message. _resolve_scan now returns make_model/color (vehicle), blood_group/description (tag), company (card). Privacy messaging added. Verified: vehicle reason->send creates incident (curl 6->7, UI thank-you). Unknown qr -> friendly 'Not registered' HTML (200)."
+
+metadata:
+  created_by: "main_agent"
+
+test_plan:
+  current_focus:
+    - "Rich public scan page (vehicle reasons / tag found / card message)"
+  stuck_tasks: []
+  test_all: false
+  test_priority: "high_first"
+
+agent_communication:
+    -agent: "main"
+    -message: "Upgraded GET /api/s/{qrid} scan page to be category-specific (matches user's old web app). Please retest: (1) vehicle qr -> reason selection reveals form -> POST incident works and records in owner /api/incidents; (2) tag qr (lost+reward) -> shows reward, 'found' alert posts to /api/alerts; (3) card qr -> Call button + message posts to /api/alerts; (4) unknown qr -> friendly HTML 200 not raw 404. Demo: demo@neksathi.app / demo1234. To get qr_ids: GET /api/vehicles,/api/tags,/api/cards."
