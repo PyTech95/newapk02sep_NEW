@@ -35,8 +35,8 @@ export default function Login() {
   };
 
   const fillDemo = () => {
-    setEmail("demo@neksathi.app");
-    setPassword("demo1234");
+    setEmail("e1tester1788162692@gmail.com");
+    setPassword("Test@1234");
   };
 
   return (
@@ -89,7 +89,7 @@ export default function Login() {
         testID="go-otp-button"
       />
       <Pressable testID="fill-demo-button" onPress={fillDemo} style={styles.demo}>
-        <Text style={styles.demoText}>Use demo account</Text>
+        <Text style={styles.demoText}>Use test account</Text>
       </Pressable>
     </AuthShell>
   );

@@ -41,9 +41,15 @@ api.interceptors.response.use(
 // Normalise an axios error into a short human message.
 export const errMessage = (e: unknown, fallback = "Something went wrong"): string => {
   const anyE = e as any;
-  const detail = anyE?.response?.data?.detail;
+  if (anyE?.code === "ECONNABORTED") return "The server is taking too long to respond. Please try again.";
+  // No response object => network error / server unreachable.
+  if (!anyE?.response) return "Can't reach the server. Please check your connection and try again shortly.";
+  const status = anyE.response.status;
+  const detail = anyE.response.data?.detail;
   if (typeof detail === "string") return detail;
   if (Array.isArray(detail) && detail[0]?.msg) return detail[0].msg;
+  if (status === 404) return "Service is temporarily unavailable. Please try again shortly.";
+  if (status >= 500) return "The server ran into a problem. Please try again shortly.";
   if (anyE?.message) return anyE.message;
   return fallback;
 };
