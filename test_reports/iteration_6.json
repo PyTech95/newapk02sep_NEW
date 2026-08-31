@@ -1,0 +1,63 @@
+{
+  "summary": "Phase 1 verification against the LIVE prod backend https://neksathi-deploy.preview.emergentagent.com. Backend pytest: 11/12 pass. Frontend UI (390x844): login works with e1tester1788162692@gmail.com / Test@1234, lands on /security, and GET /auth/me returns the user. Fresh registration on a real-looking gmail.com domain succeeds and .test domain is rejected (as expected). SCAN VEHICLE (/scan-report?qrId=c3cb0830...): renders 'MH01ZZ9999 · Car · Honda City · Owner: E1', all 6 reason chips (Wrong parking / Accident / Vehicle stolen / Vehicle damage / Window open / Something else), NOTE field, and BOTH 'Call owner' + 'Send notification' buttons. Tapping 'Send notification' → POST /api/public/qr/{id}/incident 200 → 'Thank you! ... about 15 minutes to respond.'. SCAN TAG (qrId=e17282a6...): renders 'Kids Bag' + Owner E1 + 2 reasons (I found this / Looks stolen) + Send notification → POST /api/public/tag/{id}/alert 200 → thank-you screen. SCAN CARD (qrId=f8279712...): renders 'Ravi Kumar · Engineer', green 'Call Ravi Kumar' button, and Name/Phone/Message form → tapping 'Send message' fires POST /api/public/card/{id}/message which returns 422 because frontend sends {name, phone, message} but the prod backend requires {from_name, body, phone}. This is a CRITICAL contract mismatch — the whole card-scan flow is broken end-to-end. Vehicle 'Call owner' correctly calls ensureIncident then Linking.openURL(tel:portal_number); no crash observed (dialer doesn't open in browser as expected). Light tab regression (post-login): Security ✅, Home (tab index) ✅, Family ✅ shows 'Start your guardian circle', Safety ✅, Profile ✅ shows E1 Tester / e1tester1788162692@gmail.com / +919000000001 — none crash or red-screen, but note (a) /home direct URL returns Expo Router 'Unmatched Route' (tab is served at '/'), and (b) Family screen fires a background 404 (GET /api/family) which is expected on a fresh account.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "POST /api/public/card/{id}/message", "issue": "Backend contract is {from_name, phone, body} but the frontend messageCard() sends {name, phone, message}. Prod returns 422. Either the frontend must remap OR the backend needs to accept the app-friendly keys."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "app/scan-report.tsx onSendCard / src/api/endpoints.ts messageCard", "issue": "Sends {name, phone, message} but prod backend expects {from_name, phone, body}. Send Message button 422s and the Thank-you screen never appears. Screenshot: /app/test_reports/p1_card_after.png", "testID": "scan-card-send", "priority": "HIGH"}
+    ],
+    "integration_issues": [
+      {"flow": "Public card message (finder → owner)", "issue": "POST /api/public/card/{qrId}/message returns 422 due to payload key mismatch (name→from_name, message→body).", "affected_testIDs": ["scan-card-send", "scan-name-input", "scan-message-input"]}
+    ],
+    "design_issues": [
+      {"screen": "scan-report (card)", "issues": ["'Call Ravi Kumar' button is fine on native but on web the TouchableOpacity has no anchor href — that's expected React Native behaviour and Linking.openURL(tel:) triggers the dialer on device. No action needed."]}
+    ],
+    "react_native_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_neksathi_phase1.py",
+    "/app/test_reports/pytest/phase1.xml",
+    "/app/test_reports/p1_landing.png",
+    "/app/test_reports/p1_after_login.png",
+    "/app/test_reports/p1_scan_vehicle.png",
+    "/app/test_reports/p1_vehicle_thanks.png",
+    "/app/test_reports/p1_tag_form.png",
+    "/app/test_reports/p1_tag_thanks.png",
+    "/app/test_reports/p1_card_form.png",
+    "/app/test_reports/p1_card_after.png",
+    "/app/test_reports/p1_tab_security.png",
+    "/app/test_reports/p1_tab_home_tap.png",
+    "/app/test_reports/p1_tab_family.png",
+    "/app/test_reports/p1_tab_safety.png",
+    "/app/test_reports/p1_tab_profile.png"
+  ],
+  "action_items": [
+    "FIX (P1): In /app/frontend/src/api/endpoints.ts messageCard(), remap payload keys before POST — send {from_name: name, phone, body: message} (or update backend to accept both). Confirmed by direct curl: {\"from_name\":\"AutoTester\",\"phone\":\"+91...\",\"body\":\"...\"} → {ok: true}, whereas frontend's current payload → 422 with pydantic 'missing from_name / body'.",
+    "PHASE-2 ONLY (do not fix now, per request): Route path '/home' currently 404s (Unmatched Route). The Home tab itself works because the tab index is served at '/'. If the app wants deep-linking to Home via /home, add an alias route or redirect.",
+    "OBSERVATIONAL (not a bug): Family screen makes GET /api/family that 404s on brand-new users. Expected pre-family-creation, and the empty-state UI ('Start your guardian circle') already handles this gracefully."
+  ],
+  "critical_code_review_comments": [
+    "src/api/endpoints.ts:195 messageCard signature accepts {name, phone, message} which mismatches the prod backend's Pydantic model expecting {from_name, phone, body}. This is the root cause of the card-scan 422. Fix by keeping the app-friendly public API of messageCard() and doing the key rename inside the function body.",
+    "app/scan-report.tsx:64 uses requestLocation() to fill coords for incident/tag POSTs; on web browsers this silently no-ops if permission is denied (verified — POST 200 still succeeds with lat/lng null). Good.",
+    "app/scan-report.tsx onCallVehicle correctly posts an incident BEFORE dialling so an entry is created even if the dialler can't open (browser). Verified against prod incident POST 200.",
+    "src/api/client.ts baseURL uses process.env.EXPO_PUBLIC_API_URL — confirmed pointing at neksathi-deploy prod, and 401 interceptor forces logout as designed."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_neksathi_phase1.py",
+    "/app/test_reports/pytest/phase1.xml",
+    "/app/test_reports/iteration_6.json"
+  ],
+  "success_rate": {
+    "backend": "92% (11/12 — only failure is the intentional test that documents the card-message payload contract bug)",
+    "frontend": "83% (auth + vehicle-scan + tag-scan + tab regression all green; card-scan Send Message broken by payload mismatch)"
+  },
+  "seed_data_creation": "Registered one new gmail.com test account (e1auto<uuid>@gmail.com / Test@1234) purely to exercise the register endpoint. Also created transient TEST_phase1_* incidents/alerts on the demo QR ids c3cb0830/e17282a6 during vehicle+tag tests. No card message persisted (all 422).",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Frontend uses testIDs on all scan-report interactions: scan-reason-<key>, scan-note-input, scan-vehicle-call, scan-vehicle-notify, scan-tag-notify, scan-card-call, scan-name-input, scan-phone-input, scan-message-input, scan-card-send, scan-report-done. Login uses login-email-input / login-password-input / login-submit-button. Prod backend is at EXPO_PUBLIC_API_URL=https://neksathi-deploy.preview.emergentagent.com and all routes must be prefixed with /api. Public endpoints need NO auth. Card message contract: {from_name, phone, body} — NOT {name, phone, message}. After fixing endpoints.ts messageCard, re-run TestPublicActions.test_card_message + the frontend card-scan flow.",
+  "rca_of_issue": "Card scan 'Send message' returns 422. RCA: In /app/frontend/src/api/endpoints.ts line 195, messageCard() posts {name, phone, message} but the live neksathi-deploy backend's Pydantic model for /api/public/card/{id}/message expects fields {from_name, body} (plus optional phone). Reproduced with: curl -X POST '.../api/public/card/f8279712-1ae0-4fac-8c59-711230ae02c2/message' -d '{\"name\":\"x\",\"phone\":\"+91...\",\"message\":\"y\"}' → 422 'Field required: from_name / body'. With {\"from_name\":\"x\",\"phone\":\"+91...\",\"body\":\"y\"} → {\"ok\":true}. Mitigation: change messageCard() to `api.post('/public/card/'+qrId+'/message', {from_name: payload.name, phone: payload.phone, body: payload.message})` and keep the outer callers unchanged."
+}

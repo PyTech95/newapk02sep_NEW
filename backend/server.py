@@ -959,13 +959,17 @@ render();
 async def _resolve_scan(qrid: str):
     v = await db.vehicles.find_one({"qr_id": qrid})
     if v:
+        owner = await db.users.find_one({"id": v["owner_id"]})
         return {"kind": "vehicle", "number_plate": v["number_plate"], "vehicle_type": v.get("vehicle_type"),
                 "make_model": v.get("make_model"), "color": v.get("color"),
+                "owner_phone": (owner or {}).get("phone"),
                 "lost_mode": v.get("lost_mode", False), "reward_text": v.get("reward_text"), "qr_id": qrid}
     t = await db.tags.find_one({"qr_id": qrid})
     if t:
+        owner = await db.users.find_one({"id": t["owner_id"]})
         return {"kind": "tag_guardian", "name": t["name"], "tag_type": t.get("tag_type"),
                 "blood_group": t.get("blood_group"), "description": t.get("description"),
+                "owner_phone": (owner or {}).get("phone"),
                 "lost_mode": t.get("lost_mode", False), "reward_text": t.get("reward_text"), "qr_id": qrid}
     c = await db.cards.find_one({"qr_id": qrid})
     if c:

@@ -202,3 +202,43 @@ test_plan:
 agent_communication:
     -agent: "main"
     -message: "Upgraded GET /api/s/{qrid} scan page to be category-specific (matches user's old web app). Please retest: (1) vehicle qr -> reason selection reveals form -> POST incident works and records in owner /api/incidents; (2) tag qr (lost+reward) -> shows reward, 'found' alert posts to /api/alerts; (3) card qr -> Call button + message posts to /api/alerts; (4) unknown qr -> friendly HTML 200 not raw 404. Demo: demo@neksathi.app / demo1234. To get qr_ids: GET /api/vehicles,/api/tags,/api/cards."
+
+## Session (fork) — PHASE 1: switch to REAL backend + rebuild scan flow
+IMPORTANT: App now targets the EXISTING production backend:
+  https://neksathi-deploy.preview.emergentagent.com  (EXPO_PUBLIC_API_URL changed).
+  Do NOT use the in-workspace backend. Test account: e1tester1788162692@gmail.com / Test@1234.
+  Sample qr_ids on this account: vehicle=c3cb0830-e60d-4a4d-a211-8ceb6089d59e,
+  tag=e17282a6-71f8-4f15-b86f-3712e73aaee8, card=f8279712-1ae0-4fac-8c59-711230ae02c2
+
+frontend:
+  - task: "Auth against real backend (login/register/me)"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/.env, /app/frontend/src/api/client.ts, /app/frontend/src/context/AuthContext.tsx"
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Login verified via screenshot; Security tab shows real vehicle MH01ZZ9999 from backend."
+  - task: "In-app QR scan flow rebuilt to real contract (vehicle reasons -> Call + Send notification)"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/app/scan-report.tsx, /app/frontend/src/api/endpoints.ts"
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Vehicle: reasons (wrong_parking/accident/vehicle_stolen/vehicle_damage/window_open/other) -> two buttons Call owner (dials incident.portal_number) + Send notification (POST /public/qr/{id}/incident -> shows real minutes_left). Tag: found/theft -> POST /public/tag/{id}/alert. Card: Call (tel:phone) + message (POST /public/card/{id}/message). Verified vehicle Send notification -> Thank you (15 min) end-to-end via screenshot."
+
+metadata:
+  created_by: "main_agent"
+
+test_plan:
+  current_focus:
+    - "Auth against real backend (login/register/me)"
+    - "In-app QR scan flow rebuilt to real contract (vehicle reasons -> Call + Send notification)"
+  stuck_tasks: []
+  test_all: false
+  test_priority: "high_first"
+
+agent_communication:
+    -agent: "main"
+    -message: "PHASE 1 only. App re-pointed to the real backend. Please test: (1) register a NEW account + login + GET /auth/me works; (2) in-app scan flow at route /scan-report?qrId=<id> for vehicle/tag/card: vehicle shows reason chips + 'Call owner' + 'Send notification'; tapping Send notification posts the incident and shows the Thank-you (with minutes_left); card shows Call + message; (3) LIGHT regression only: open Home/Family/Safety/Security/Profile tabs and just REPORT which ones error/crash (do NOT deep-test them) — those are wired to a different contract and will be fixed in later phases. Use account e1tester1788162692@gmail.com / Test@1234 (or register fresh). qr_ids above."

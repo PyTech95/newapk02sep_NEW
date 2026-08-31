@@ -132,27 +132,51 @@ export const reportIntruder = (id: string) =>
 export const reportSimSwap = (id: string) =>
   api.post(`/devices/${id}/sim-swap`, {}).then((r) => r.data);
 
-// scan URL that a QR should encode — a public web page served by the backend
+// scan URL that a QR should encode — the public web portal page
 // (works with any phone camera / browser, no NekSathi app required).
-export const scanUrl = (qrId: string) => `${process.env.EXPO_PUBLIC_API_URL}/api/s/${qrId}`;
+export const scanUrl = (qrId: string) => `${process.env.EXPO_PUBLIC_API_URL}/scan/${qrId}`;
 
 // ---------- Public scan / report (finder flow, no ownership required) ----------
 export interface ResolvedItem {
   kind?: string;
+  qr_id?: string;
   number_plate?: string;
   vehicle_type?: string;
+  make_model?: string | null;
+  color?: string | null;
+  photo_base64?: string | null;
+  owner_first_name?: string | null;
   name?: string;
   tag_type?: string;
+  blood_group?: string | null;
+  has_guardian?: boolean;
   display_name?: string;
   title?: string;
+  company?: string | null;
   phone?: string | null;
+  email?: string | null;
   reward_text?: string | null;
   lost_mode?: boolean;
   [k: string]: unknown;
 }
+
+// Response from POST /public/qr/{id}/incident — includes the masked bridge number.
+export interface IncidentResult {
+  id: string;
+  type: string;
+  number_plate?: string;
+  status?: string;
+  owner_response?: string | null;
+  minutes_left?: number;
+  expires_at?: string;
+  call_available?: boolean;
+  portal_number?: string;
+  created_at?: string;
+}
+
 export interface ScanReportPayload {
   type?: string;
-  scanner_note?: string | null;
+  note?: string | null;
   scanner_phone?: string | null;
   scanner_lat?: number | null;
   scanner_lng?: number | null;
@@ -160,20 +184,28 @@ export interface ScanReportPayload {
 
 export const resolveQr = (qrId: string) =>
   api.get<ResolvedItem>(`/public/qr/${qrId}`).then((r) => r.data);
+export const resolveTag = (qrId: string) =>
+  api.get<ResolvedItem>(`/public/tag/${qrId}`).then((r) => r.data);
 export const resolveCard = (qrId: string) =>
   api.get<ResolvedItem>(`/public/card/${qrId}`).then((r) => r.data);
 export const reportIncident = (qrId: string, payload: ScanReportPayload) =>
-  api.post(`/public/qr/${qrId}/incident`, payload).then((r) => r.data);
+  api.post<IncidentResult>(`/public/qr/${qrId}/incident`, payload).then((r) => r.data);
 export const alertTag = (qrId: string, payload: ScanReportPayload) =>
   api.post(`/public/tag/${qrId}/alert`, payload).then((r) => r.data);
 export const messageCard = (qrId: string, payload: { name?: string; phone?: string; message?: string }) =>
-  api.post(`/public/card/${qrId}/message`, payload).then((r) => r.data);
+  api
+    .post(`/public/card/${qrId}/message`, {
+      from_name: payload.name,
+      phone: payload.phone,
+      body: payload.message,
+    })
+    .then((r) => r.data);
 
 // pull a bare qr id out of a scanned value (URL or raw id).
-// Handles both the new "/api/s/<id>" page URL and the legacy "/scan/<id>".
+// Handles portal URLs "/scan/<id>", "/t/<id>", "/c/<id>" and raw ids.
 export const parseQrValue = (value: string): string => {
   const trimmed = value.trim();
-  for (const marker of ["/api/s/", "/scan/", "/s/"]) {
+  for (const marker of ["/scan/", "/t/", "/c/", "/api/s/", "/s/"]) {
     const idx = trimmed.indexOf(marker);
     if (idx >= 0) return trimmed.slice(idx + marker.length).split(/[/?#]/)[0];
   }
