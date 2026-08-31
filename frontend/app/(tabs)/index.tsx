@@ -6,7 +6,7 @@ import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-na
 import Animated, { FadeInDown } from "react-native-reanimated";
 
 import { errMessage } from "@/src/api/client";
-import { ackSos, listContacts, listSafeZones, listSosEvents, startLiveShare, triggerSos } from "@/src/api/endpoints";
+import { ackSos, listContacts, listSafeZones, listSosEvents, pingLocation, startLiveShare, triggerSos } from "@/src/api/endpoints";
 import { SosEvent } from "@/src/api/types";
 import { GlassCard } from "@/src/components/GlassCard";
 import { ScreenHeader } from "@/src/components/ScreenHeader";
@@ -69,6 +69,22 @@ export default function Home() {
   };
 
   useFocusEffect(useCallback(() => { loadStats(); reconcileCheckIn().then((fired) => { if (fired) { toast("Check-in missed — SOS sent automatically", "error"); loadStats(); } }); }, [loadStats]));
+
+  // While an SOS is active (not yet acknowledged), keep streaming live location
+  // to the backend every ~8s so guardians can track in real time (spec §2).
+  useEffect(() => {
+    if (!activeSos) return;
+    let cancelled = false;
+    const tick = async () => {
+      const loc = await requestLocation();
+      if (!cancelled && loc.coords) {
+        pingLocation(loc.coords.latitude, loc.coords.longitude).catch(() => {});
+      }
+    };
+    tick();
+    const id = setInterval(tick, 8000);
+    return () => { cancelled = true; clearInterval(id); };
+  }, [activeSos]);
 
   const onSos = async () => {
     setSosLoading(true);
