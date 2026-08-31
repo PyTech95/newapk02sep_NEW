@@ -79,7 +79,7 @@ export const createFamily = (name: string) =>
   api.post<FamilyActive>("/family", { name }).then((r) => r.data);
 
 export const joinFamily = (invite_code: string) =>
-  api.post("/family/join", { invite_code }).then((r) => r.data);
+  api.post("/family/join", { code: invite_code }).then((r) => r.data);
 
 export interface FamilySos {
   id: string;
@@ -90,7 +90,7 @@ export interface FamilySos {
   created_at: string;
   escalation_level?: number;
 }
-export const familySos = () => api.get<FamilySos[]>("/family/sos").then((r) => r.data);
+export const familySos = () => api.get<FamilySos[]>("/family/active-sos").then((r) => r.data);
 export const familyAckSos = (id: string) => api.post(`/family/sos/${id}/ack`, {}).then((r) => r.data);
 
 // ---------- Smart QR ----------
