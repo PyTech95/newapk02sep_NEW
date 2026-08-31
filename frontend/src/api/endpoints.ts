@@ -85,13 +85,30 @@ export interface FamilySos {
   id: string;
   owner_name: string;
   is_me: boolean;
-  latitude: number;
-  longitude: number;
+  latitude: number | null;
+  longitude: number | null;
+  message?: string | null;
   created_at: string;
-  escalation_level?: number;
+  escalated?: boolean;
 }
-export const familySos = () => api.get<FamilySos[]>("/family/active-sos").then((r) => r.data);
-export const familyAckSos = (id: string) => api.post(`/family/sos/${id}/ack`, {}).then((r) => r.data);
+// Backend returns { items: [{ id, member_name, latitude, longitude, message, escalated, created_at }] }.
+// Normalise into FamilySos[] and flag which one is the current user's.
+export const familySos = async (meName?: string): Promise<FamilySos[]> => {
+  const { data } = await api.get<{ items?: any[] }>("/family/active-sos");
+  const items = data?.items ?? [];
+  return items.map((it) => ({
+    id: it.id,
+    owner_name: it.member_name ?? "A family member",
+    is_me: !!meName && it.member_name === meName,
+    latitude: it.latitude ?? null,
+    longitude: it.longitude ?? null,
+    message: it.message ?? null,
+    escalated: !!it.escalated,
+    created_at: it.created_at,
+  }));
+};
+// Only your own SOS can be acknowledged (marks you safe); others have no ack API.
+export const familyAckSos = (id: string) => api.post(`/me/sos-events/${id}/ack`, {}).then((r) => r.data);
 
 // ---------- Smart QR ----------
 export const listVehicles = () => api.get<Vehicle[]>("/vehicles").then((r) => r.data);

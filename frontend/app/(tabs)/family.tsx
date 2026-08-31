@@ -17,6 +17,7 @@ import { Field } from "@/src/components/Field";
 import { GlassCard } from "@/src/components/GlassCard";
 import { NeonButton } from "@/src/components/NeonButton";
 import { useToast } from "@/src/context/ToastContext";
+import { useAuth } from "@/src/context/AuthContext";
 import { colors, fonts, fontSize, radius, spacing, tint } from "@/src/theme";
 
 function sinceLabel(iso: string | null): string {
@@ -32,6 +33,7 @@ function sinceLabel(iso: string | null): string {
 
 export default function Family() {
   const toast = useToast();
+  const { user } = useAuth();
   const insets = useSafeAreaInsets();
   const [data, setData] = useState<FamilyResponse | null>(null);
   const [zones, setZones] = useState<SafeZone[]>([]);
@@ -46,7 +48,7 @@ export default function Family() {
   const load = useCallback(async (spin = false) => {
     if (spin) setLoading(true);
     try {
-      const [fam, zn, fs] = await Promise.all([getFamily(), listSafeZones(), familySos().catch(() => [])]);
+      const [fam, zn, fs] = await Promise.all([getFamily(), listSafeZones(), familySos(user?.name).catch(() => [])]);
       setData(fam);
       setZones(zn);
       setFamSos(fs);
@@ -55,7 +57,7 @@ export default function Family() {
     } finally {
       setLoading(false);
     }
-  }, [toast]);
+  }, [toast, user?.name]);
 
   useFocusEffect(
     useCallback(() => {
@@ -97,10 +99,10 @@ export default function Family() {
   const ackFam = async (id: string) => {
     try {
       await familyAckSos(id);
-      toast("SOS acknowledged — they've been told help is coming", "success");
+      toast("Marked safe — escalation stopped", "success");
       load(true);
     } catch {
-      toast("Could not acknowledge", "error");
+      toast("Could not mark safe", "error");
     }
   };
 
@@ -171,11 +173,13 @@ export default function Family() {
               <Feather name="alert-octagon" size={20} color="#fff" />
               <View style={{ flex: 1 }}>
                 <Text style={styles.sosBannerTitle}>{s.is_me ? "Your SOS is active" : `${s.owner_name} needs help`}</Text>
-                <Text style={styles.sosBannerSub}>Tap to acknowledge and stop escalation</Text>
+                <Text style={styles.sosBannerSub}>{s.is_me ? "Tap to acknowledge and stop escalation" : "Live location shown on the map"}</Text>
               </View>
-              <Pressable testID={`family-sos-ack-${s.id}`} onPress={() => ackFam(s.id)} style={styles.sosBannerBtn}>
-                <Text style={styles.sosBannerBtnText}>Acknowledge</Text>
-              </Pressable>
+              {s.is_me ? (
+                <Pressable testID={`family-sos-ack-${s.id}`} onPress={() => ackFam(s.id)} style={styles.sosBannerBtn}>
+                  <Text style={styles.sosBannerBtnText}>I'm safe</Text>
+                </Pressable>
+              ) : null}
             </View>
           ))}
         </View>

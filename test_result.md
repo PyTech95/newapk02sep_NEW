@@ -242,3 +242,22 @@ test_plan:
 agent_communication:
     -agent: "main"
     -message: "PHASE 1 only. App re-pointed to the real backend. Please test: (1) register a NEW account + login + GET /auth/me works; (2) in-app scan flow at route /scan-report?qrId=<id> for vehicle/tag/card: vehicle shows reason chips + 'Call owner' + 'Send notification'; tapping Send notification posts the incident and shows the Thank-you (with minutes_left); card shows Call + message; (3) LIGHT regression only: open Home/Family/Safety/Security/Profile tabs and just REPORT which ones error/crash (do NOT deep-test them) — those are wired to a different contract and will be fixed in later phases. Use account e1tester1788162692@gmail.com / Test@1234 (or register fresh). qr_ids above."
+
+## Session (fork) — Phases 2-4 wired to REAL backend (backend is BACK ONLINE)
+Backend: https://neksathi-deploy.preview.emergentagent.com (live). Demo acct: demo@neksathi.app / demo1234 (has family + vehicles/tags/cards + active SOS).
+Verified live via curl: POST /me/sos, POST /me/sos-events/{id}/ack -> {acknowledged:true}, POST /me/location -> {ok,transitions}, GET /family, GET /family/active-sos -> {items:[{member_name,...}]}, vehicle lost_mode expects {enabled}, add vehicle/tag/card OK.
+Changes: familySos() now unwraps {items} + maps member_name + is_me (via current user name); familyAckSos -> /me/sos-events/{id}/ack; family banner shows 'I'm safe' only for own SOS; joinFamily {code}; SOS live-location heartbeat in Home.
+
+test_plan:
+  current_focus:
+    - "Phase 2 SOS (trigger/mark-safe/live-location)"
+    - "Phase 3 Family (load/invite/active-sos banner/I'm safe)"
+    - "Phase 4 Smart QR (add + lost_mode)"
+    - "Phase 1 scan+call flow (vehicle/tag/card)"
+  stuck_tasks: []
+  test_all: false
+  test_priority: "high_first"
+
+agent_communication:
+    -agent: "main"
+    -message: "Backend is live again. Full verification pass across Phases 1-4 against the REAL external backend. Use demo@neksathi.app/demo1234."
