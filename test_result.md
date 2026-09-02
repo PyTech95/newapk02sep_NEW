@@ -307,3 +307,11 @@ test_plan:
 agent_communication:
     -agent: "main"
     -message: "Fix for 'call ring + alert not coming'. Backend = neksathi-deploy (POST works). Verify: (1) after login as demo, POST /api/public/qr/17cc2084-117a-439f-b3d1-273479b64f11/call/start makes the app show the incoming-call ring overlay within ~5s (testID incoming-call-overlay); Decline (testID call-decline) calls /me/calls/{id}/reject and dismisses. (2) POST /api/public/qr/17cc2084-.../incident with {type:'wrong_parking'} makes a '🔔 New ...' toast appear within ~15s while app is open. You may create the call/incident via fetch from the browser (public, no auth) or curl."
+
+## Session (fork) — Switched app to WORKING production API https://api.neksathi.in
+- EXPO_PUBLIC_API_URL=https://api.neksathi.in (POST+CORS work). EXPO_PUBLIC_WEB_URL=https://neksathi.in (QR encodes neksathi.in/scan/{qr}). scanUrl updated.
+- Verified curl: login 200, create vehicle, GET /public/qr 200, call/start 200, incoming shows call, neksathi.in/scan/{qr} 200. Screenshot: login + ring overlay works on api.neksathi.in (vehicle MH14DEMO01).
+- Demo DB on api.neksathi.in is fresh (may have 0 items; create in-app).
+agent_communication:
+    -agent: "main"
+    -message: "App now on production api.neksathi.in. Full E2E verification: auth, in-app scan flow (create a vehicle first via Security->Smart QR Add, then /scan-report?qrId=<qr> reason->Send notification (incident) + Call owner), incoming-call ring overlay, and new-alert toast."

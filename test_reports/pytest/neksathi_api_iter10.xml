@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="11" skipped="0" tests="26" time="26.851" timestamp="2026-09-02T10:24:38.144200+00:00" hostname="agent-env-ce10ce4c-0c6e-4d9c-9784-403123be0874"><testcase classname="tests.test_neksathi_api" name="test_root_ok" time="0.553"><failure message="AssertionError: assert None is True&#10; +  where None = &lt;built-in method get of dict object at 0xfdd16b5b7a00&gt;('ok')&#10; +    where &lt;built-in method get of dict object at 0xfdd16b5b7a00&gt; = {'service': 'Nek Sathi API', 'status': 'ok'}.get&#10; +      where {'service': 'Nek Sathi API', 'status': 'ok'} = json()&#10; +        where json = &lt;Response [200]&gt;.json">backend/tests/test_neksathi_api.py:35: in test_root_ok
+    assert r.json().get("ok") is True
+E   AssertionError: assert None is True
+E    +  where None = &lt;built-in method get of dict object at 0xfdd16b5b7a00&gt;('ok')
+E    +    where &lt;built-in method get of dict object at 0xfdd16b5b7a00&gt; = {'service': 'Nek Sathi API', 'status': 'ok'}.get
+E    +      where {'service': 'Nek Sathi API', 'status': 'ok'} = json()
+E    +        where json = &lt;Response [200]&gt;.json</failure></testcase><testcase classname="tests.test_neksathi_api" name="test_auth_me" time="1.123" /><testcase classname="tests.test_neksathi_api" name="test_auth_login_bad_password" time="0.678" /><testcase classname="tests.test_neksathi_api" name="test_auth_me_requires_token" time="0.433" /><testcase classname="tests.test_neksathi_api" name="test_register_new_user" time="1.143" /><testcase classname="tests.test_neksathi_api" name="test_otp_request_and_verify" time="1.334" /><testcase classname="tests.test_neksathi_api" name="test_update_me" time="0.459" /><testcase classname="tests.test_neksathi_api" name="test_sos_flow" time="1.096" /><testcase classname="tests.test_neksathi_api" name="test_emergency_contacts_crud" time="1.793" /><testcase classname="tests.test_neksathi_api" name="test_safe_zones_crud" time="1.323" /><testcase classname="tests.test_neksathi_api" name="test_live_share_and_location" time="0.923" /><testcase classname="tests.test_neksathi_api" name="test_family_create_and_join" time="1.568"><failure message="KeyError: 'in_family'">backend/tests/test_neksathi_api.py:171: in test_family_create_and_join
+    assert fam["in_family"] is True and "invite_code" in fam
+           ^^^^^^^^^^^^^^^^
+E   KeyError: 'in_family'</failure></testcase><testcase classname="tests.test_neksathi_api" name="test_vehicle_update_and_lost" time="1.333" /><testcase classname="tests.test_neksathi_api" name="test_tag_update_and_lost" time="1.307" /><testcase classname="tests.test_neksathi_api" name="test_lists_include_created" time="1.794" /><testcase classname="tests.test_neksathi_api" name="test_public_qr_vehicle" time="0.439"><failure message="KeyError: 'kind'">backend/tests/test_neksathi_api.py:255: in test_public_qr_vehicle
+    assert r.json()["kind"] == "vehicle"
+           ^^^^^^^^^^^^^^^^
+E   KeyError: 'kind'</failure></testcase><testcase classname="tests.test_neksathi_api" name="test_public_qr_tag" time="0.455"><failure message="assert 404 == 200&#10; +  where 404 = &lt;Response [404]&gt;.status_code">backend/tests/test_neksathi_api.py:261: in test_public_qr_tag
+    assert r.status_code == 200
+E   assert 404 == 200
+E    +  where 404 = &lt;Response [404]&gt;.status_code</failure></testcase><testcase classname="tests.test_neksathi_api" name="test_public_card" time="0.429"><failure message="KeyError: 'kind'">backend/tests/test_neksathi_api.py:268: in test_public_card
+    assert r.json()["kind"] == "card"
+           ^^^^^^^^^^^^^^^^
+E   KeyError: 'kind'</failure></testcase><testcase classname="tests.test_neksathi_api" name="test_public_qr_not_found" time="0.425" /><testcase classname="tests.test_neksathi_api" name="test_public_incident_and_alert_flow" time="1.646"><failure message="assert 422 == 200&#10; +  where 422 = &lt;Response [422]&gt;.status_code">backend/tests/test_neksathi_api.py:292: in test_public_incident_and_alert_flow
+    assert cm.status_code == 200
+E   assert 422 == 200
+E    +  where 422 = &lt;Response [422]&gt;.status_code</failure></testcase><testcase classname="tests.test_neksathi_api" name="test_device_register_and_reports" time="3.008" /><testcase classname="tests.test_neksathi_api" name="test_scan_page_vehicle" time="0.445"><failure message="AssertionError: {&quot;detail&quot;:&quot;Not Found&quot;}&#10;assert 404 == 200&#10; +  where 404 = &lt;Response [404]&gt;.status_code">backend/tests/test_neksathi_api.py:337: in test_scan_page_vehicle
+    assert r.status_code == 200, r.text
+E   AssertionError: {"detail":"Not Found"}
+E   assert 404 == 200
+E    +  where 404 = &lt;Response [404]&gt;.status_code</failure></testcase><testcase classname="tests.test_neksathi_api" name="test_scan_page_tag" time="0.442"><failure message="assert 404 == 200&#10; +  where 404 = &lt;Response [404]&gt;.status_code">backend/tests/test_neksathi_api.py:361: in test_scan_page_tag
+    assert r.status_code == 200
+E   assert 404 == 200
+E    +  where 404 = &lt;Response [404]&gt;.status_code</failure></testcase><testcase classname="tests.test_neksathi_api" name="test_scan_page_card" time="0.447"><failure message="assert 404 == 200&#10; +  where 404 = &lt;Response [404]&gt;.status_code">backend/tests/test_neksathi_api.py:386: in test_scan_page_card
+    assert r.status_code == 200
+E   assert 404 == 200
+E    +  where 404 = &lt;Response [404]&gt;.status_code</failure></testcase><testcase classname="tests.test_neksathi_api" name="test_scan_page_unknown_qrid_returns_html_not_json_404" time="0.441"><failure message="AssertionError: expected 200, got 404: {&quot;detail&quot;:&quot;Not Found&quot;}&#10;assert 404 == 200&#10; +  where 404 = &lt;Response [404]&gt;.status_code">backend/tests/test_neksathi_api.py:413: in test_scan_page_unknown_qrid_returns_html_not_json_404
+    assert r.status_code == 200, f"expected 200, got {r.status_code}: {r.text[:200]}"
+E   AssertionError: expected 200, got 404: {"detail":"Not Found"}
+E   assert 404 == 200
+E    +  where 404 = &lt;Response [404]&gt;.status_code</failure></testcase><testcase classname="tests.test_neksathi_api" name="test_scan_page_seeded_demo_vehicle" time="1.182"><failure message="AssertionError: seeded demo vehicle missing&#10;assert None">backend/tests/test_neksathi_api.py:430: in test_scan_page_seeded_demo_vehicle
+    assert seeded, "seeded demo vehicle missing"
+E   AssertionError: seeded demo vehicle missing
+E   assert None</failure></testcase></testsuite></testsuites>

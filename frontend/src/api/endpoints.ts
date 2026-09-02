@@ -161,9 +161,10 @@ export const reportIntruder = (id: string) =>
 export const reportSimSwap = (id: string) =>
   api.post(`/devices/${id}/sim-swap`, {}).then((r) => r.data);
 
-// scan URL that a QR should encode — the public web portal page
-// (works with any phone camera / browser, no NekSathi app required).
-export const scanUrl = (qrId: string) => `${process.env.EXPO_PUBLIC_API_URL}/scan/${qrId}`;
+// scan URL that a QR should encode — the public web portal page on neksathi.in
+// (the API lives on api.neksathi.in; the human-facing scan page is on the web domain).
+export const scanUrl = (qrId: string) =>
+  `${process.env.EXPO_PUBLIC_WEB_URL || "https://neksathi.in"}/scan/${qrId}`;
 
 // ---------- Public scan / report (finder flow, no ownership required) ----------
 export interface ResolvedItem {

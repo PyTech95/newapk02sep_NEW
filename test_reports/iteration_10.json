@@ -1,0 +1,39 @@
+{
+  "summary": "End-to-end verification against LIVE production API https://api.neksathi.in — ALL 6 requested user flows PASS. (1) demo@neksathi.app/demo1234 login succeeds and lands on Security tab. (2) Smart QR → Vehicles → 'Add vehicle' modal creates a new vehicle (TEST6421 → POST /api/vehicles → 200) and it appears both in the app list and in GET /api/vehicles. (3) Direct navigation to /scan-report?qrId=9a85011b-... resolves MH14DEMO01, renders reason chips (scan-reason-wrong_parking et al.), 'Call owner' (scan-vehicle-call) and 'Send notification' (scan-vehicle-notify). Tapping Send notification calls POST /api/public/qr/{qr}/incident → 200 and shows the 'Thank you!' screen with '~15 minutes' copy. Public tag /alert and card /message endpoints also confirmed alive via API (see notes). (4) POST /api/public/qr/9a85011b-.../call/start (unauthenticated) → within ~5s the responsive incoming-call overlay (testID 'incoming-call-overlay') shows 'Someone needs to reach you about vehicle MH14DEMO01' with call-decline/call-accept; call-decline dismisses the overlay (POST /api/me/calls/{id}/reject fires). (5) POST /api/public/qr/9a85011b-.../incident {type:'wrong_parking'} → within ~2s the '🔔 New wrong parking on MH14DEMO01' toast appears (screenshot captured). (6) Smart-QR detail 'Copy scan link' places https://neksathi.in/scan/9a85011b-7c38-4105-932b-0f8e2a50df64 in clipboard — QR encodes the neksathi.in web-portal URL, NOT api.neksathi.in. Backend pytest run: 15/26 tests pass; 11 failures are legacy test-schema mismatches (production API returns different keys — see 'backend_issues.minor') and are NOT app-side regressions.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "GET /api/", "issue": "Returns {service, status:'ok'} instead of {ok:true}. Legacy test expects 'ok' key. App does not depend on this."},
+      {"endpoint": "GET /api/public/qr/{qr}", "issue": "Production response omits 'kind' discriminator; still returns full vehicle payload. Client detects kind via which resolver (qr/tag/card) succeeded, so no functional impact."},
+      {"endpoint": "GET /api/public/qr/{tag_qr}", "issue": "Tag QR resolves through /api/public/tag/{qr} only (not /api/public/qr/{qr}); production returns 404 for tags on the vehicle endpoint. App already tries qr → tag → card in scan-report.tsx so it works."},
+      {"endpoint": "POST /api/family", "issue": "Response missing 'in_family' key that legacy test asserts. Not blocking any tested user flow."},
+      {"endpoint": "GET /api/s/{qr}", "issue": "Not deployed on api.neksathi.in (404). App uses the neksathi.in/scan/{qr} web portal instead, which is the intended architecture."},
+      {"endpoint": "POST /api/public/card/{qr}/message", "issue": "Legacy test posts {name,phone,message} → 422. App correctly posts {from_name, phone, body} via endpoints.ts, which succeeds."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": [
+      {"component": "LiveOverlays.tsx (Vibration + Animated)", "issue": "Cosmetic web-preview warnings only: 'Animated: useNativeDriver is not supported, falling back to JS' and 'shadow*/pointerEvents deprecated'. No functional impact on native build. Reference: /app/frontend/src/components/LiveOverlays.tsx:87,90"}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/test_neksathi_api.py", "/app/test_reports/pytest/neksathi_api_iter10.xml"],
+  "action_items": [
+    "Optional: update /app/backend/tests/test_neksathi_api.py assertions to match production api.neksathi.in schema (or gate legacy /api/s/... and 'kind' assertions with an env flag) — currently 11 pre-existing test-schema failures pollute the run.",
+    "Optional: gate LiveOverlays useNativeDriver behind Platform.OS !== 'web' to silence RCTAnimation warning in web preview."
+  ],
+  "critical_code_review_comments": [
+    "scan-report.tsx correctly falls back qr → tag → card resolvers, so the missing 'kind' key on production /public/qr responses is handled.",
+    "endpoints.ts messageCard() correctly maps client {name, phone, message} → server {from_name, phone, body}, matching production schema.",
+    "scanUrl() in endpoints.ts uses EXPO_PUBLIC_WEB_URL (https://neksathi.in) — confirmed encoded in generated QR."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "58% raw pytest (15/26) — 100% of endpoints exercised by the app work correctly; failures are test-side schema drift", "frontend": "100% (6/6 requested flows)"},
+  "seed_data_creation": "Created vehicle TEST6421 (car) under demo user via app UI. Also produced multiple public incidents + one call-start against demo QR 9a85011b-7c38-4105-932b-0f8e2a50df64 (MH14DEMO01) to exercise polling.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Preview: https://mobile-safety-app-2.preview.emergentagent.com | API: https://api.neksathi.in | Web portal: https://neksathi.in | Login: demo@neksathi.app / demo1234 via fill-demo-button + login-submit-button. Pre-made demo vehicle: qr_id=9a85011b-7c38-4105-932b-0f8e2a50df64, plate=MH14DEMO01. TestIDs used: login-submit-button, fill-demo-button, tab-security, incoming-call-overlay, call-decline, call-accept, scan-reason-<key>, scan-vehicle-call, scan-vehicle-notify, scan-tag-notify, scan-card-send, scan-name-input, scan-phone-input, scan-message-input, scan-report-done, app-toast. Add-vehicle modal has no dedicated testIDs on inputs/submit — uses free 'Create' text button (works but consider adding testIDs). Poll intervals: calls=5s, alerts=15s (alertsPrimed on first fetch, so trigger post-login).",
+  "rca_of_issue": "N/A — full green E2E against live production API."
+}
