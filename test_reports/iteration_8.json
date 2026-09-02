@@ -1,0 +1,23 @@
+{
+  "summary": "Frontend-only verification of LiveOverlays (incoming-call RING + new-alert toast). All 3 requested behaviors PASS. Ring overlay appeared within ~1s of POST /api/public/qr/{id}/call/start with correct title 'Someone needs to reach you', plate 'TSF714F3', and Decline/Accept buttons. Decline dismissed the overlay and it did NOT re-appear for the same call over the next 7s of polling. New-alert toast '🔔 New wrong parking on TSF714F3' appeared after triggering /api/public/qr/{id}/incident. App boots, demo login works, and (tabs) render without crash from the always-mounted LiveOverlays poller.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": []
+  },
+  "test_report_links": ["/app/test_reports/iteration_8.json"],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "LiveOverlays.tsx uses useNativeDriver: true on Animated but web preview logs 'RCTAnimation module missing, falling back to JS-based animation' — cosmetic only; no user-visible issue.",
+    "Alert primer resets only on user change; if the same session is kept open for hours without polling, memory footprint of knownAlerts Set will grow unboundedly. Not blocking, but consider capping size or trimming."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "n/a (skipped)", "frontend": "100%"},
+  "seed_data_creation": "None persistent. Test triggered one masked-call (fd3a3c61-...) and one incident (99632d3c-...) via public unauthenticated endpoints against demo QR 17cc2084-117a-439f-b3d1-273479b64f11.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Preview URL: https://mobile-safety-app-2.preview.emergentagent.com. API base: https://neksathi-deploy.preview.emergentagent.com/api. Demo login demo@neksathi.app/demo1234 works via POST /api/auth/login. Trigger ring: POST /api/public/qr/17cc2084-117a-439f-b3d1-273479b64f11/call/start {} (no auth). Trigger alert: POST /api/public/qr/17cc2084-117a-439f-b3d1-273479b64f11/incident {\"type\":\"wrong_parking\",\"note\":\"...\"}. TestIDs: login-email-input, login-password-input, login-submit-button, fill-demo-button, incoming-call-overlay, call-decline, call-accept, app-toast.",
+  "rca_of_issue": "N/A — this iteration is a positive-path verification of a new feature (LiveOverlays), not a bug hunt. Bug from previous iteration (no ring/no alert when scanned from another phone) is confirmed fixed: overlay and toast both surface within the documented polling windows."
+}

@@ -276,3 +276,34 @@ test_plan:
 agent_communication:
     -agent: "main"
     -message: "Backend base URL switched to https://neksathi.in. Its POST/OPTIONS currently return 405 (user's VPS nginx not yet configured for non-GET). This is a SERVER-SIDE blocker outside this project. Verify only: (1) the app issues requests to https://neksathi.in/api/... ; (2) attempting login surfaces a clear error toast (Service temporarily unavailable / Can't reach the server) and does NOT white-screen. Do not treat the 405 as an app code bug."
+
+## Session (fork) — Incoming-call RING overlay + new-alert notifications
+NOTE: preview backend switched to https://neksathi-deploy.preview.emergentagent.com (POST works there; neksathi.in still 405 pending user's VPS nginx fix). Demo: demo@neksathi.app/demo1234. Demo vehicle qr_id: 17cc2084-117a-439f-b3d1-273479b64f11 (plate TSF714F3).
+frontend:
+  - task: "App-wide incoming masked-call ring overlay"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/components/LiveOverlays.tsx, /app/frontend/app/_layout.tsx, /app/frontend/src/api/endpoints.ts"
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Polls GET /me/calls/incoming every 5s; shows full-screen ring modal (buzz+pulse) 'Someone needs to reach you about vehicle {plate}' with Decline (POST /me/calls/{id}/reject) and Accept. Verified via screenshot: POST /public/qr/{qr}/call/start -> overlay appeared. Real 2-way voice (accept SDP/WebRTC) needs native build; Accept dismisses with a note."
+  - task: "New scan-alert / incident notifications"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/components/LiveOverlays.tsx"
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Polls GET /alerts every 15s; primes known ids on first load; on a new alert shows a toast '🔔 New {type} on {plate}' + buzz."
+
+test_plan:
+  current_focus:
+    - "App-wide incoming masked-call ring overlay"
+    - "New scan-alert / incident notifications"
+  stuck_tasks: []
+  test_all: false
+  test_priority: "high_first"
+agent_communication:
+    -agent: "main"
+    -message: "Fix for 'call ring + alert not coming'. Backend = neksathi-deploy (POST works). Verify: (1) after login as demo, POST /api/public/qr/17cc2084-117a-439f-b3d1-273479b64f11/call/start makes the app show the incoming-call ring overlay within ~5s (testID incoming-call-overlay); Decline (testID call-decline) calls /me/calls/{id}/reject and dismisses. (2) POST /api/public/qr/17cc2084-.../incident with {type:'wrong_parking'} makes a '🔔 New ...' toast appear within ~15s while app is open. You may create the call/incident via fetch from the browser (public, no auth) or curl."

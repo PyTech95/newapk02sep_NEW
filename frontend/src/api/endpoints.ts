@@ -110,6 +110,18 @@ export const familySos = async (meName?: string): Promise<FamilySos[]> => {
 // Only your own SOS can be acknowledged (marks you safe); others have no ack API.
 export const familyAckSos = (id: string) => api.post(`/me/sos-events/${id}/ack`, {}).then((r) => r.data);
 
+// ---------- Masked calls (incoming, for the item owner) ----------
+export interface IncomingCall {
+  call_id: string;
+  number_plate?: string | null;
+  created_at?: string;
+  has_offer?: boolean;
+}
+export const listIncomingCalls = () =>
+  api.get<{ items?: IncomingCall[] }>("/me/calls/incoming").then((r) => r.data?.items ?? []);
+export const rejectCall = (id: string) => api.post(`/me/calls/${id}/reject`, {}).then((r) => r.data);
+export const endCall = (id: string) => api.post(`/me/calls/${id}/end`, {}).then((r) => r.data);
+
 // ---------- Smart QR ----------
 export const listVehicles = () => api.get<Vehicle[]>("/vehicles").then((r) => r.data);
 export const addVehicle = (number_plate: string, vehicle_type: string, make_model?: string) =>
