@@ -1,0 +1,33 @@
+{
+  "summary": "Frontend-only verification of the base-URL switch and network-error UX on the NekSathi Expo app (mobile viewport 390x844, web preview). (1) CONFIG ✅ — the app now targets the production absolute base. Playwright observed the exact request POST https://neksathi.in/api/auth/login when the Log in button is pressed on the login screen. src/api/client.ts:7 builds baseURL from process.env.EXPO_PUBLIC_API_URL + '/api' and frontend/.env has EXPO_PUBLIC_API_URL=https://neksathi.in. (2) NETWORK-ERROR UX ✅ — with demo@neksathi.app / demo1234 the login attempt fails (browser blocks the preflight because the VPS nginx does not return CORS headers), and instead of a blank/white screen the app stays on the Login screen and shows a clear red toast reading 'Can't reach the server. Please check your connection and try again shortly.' (screenshot: /app/test_reports/it7_toast_visible.png). This is exactly the errMessage() branch for no-response network errors in src/api/client.ts:46. (3) SMOKE ✅ — the app boots cleanly on the new base URL (Welcome back, EMAIL, PASSWORD, Log in, Continue with phone OTP, Use test account, Create account all render, no red screen, no crash). GET https://neksathi.in/api/health returns 200 and POST https://neksathi.in/api/auth/login returns 405 (both confirmed via curl) — the 405 is the known server-side nginx issue and is NOT flagged as an app bug per the request.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": []
+  },
+  "test_report_links": [
+    "/app/test_reports/it7_login_boot.png",
+    "/app/test_reports/it7_login_after_submit.png",
+    "/app/test_reports/it7_toast_visible.png"
+  ],
+  "action_items": [
+    "OBSERVATION (not blocking, but worth handling for the Android APK path): On web preview the browser blocks the preflight so axios has no response object and errMessage() returns the friendly 'Can't reach the server…' string — this is what user will see and it PASSES the review criteria. However, once the VPS nginx starts returning 405 to the actual request (which is what a real Android APK will receive because APKs are not subject to browser CORS), errMessage() in src/api/client.ts will fall through the 404/>=500 branches to anyE.message and surface the raw axios string 'Request failed with status code 405'. To keep the human tone the request asked for, consider adding a branch: `if (status === 405 || status === 502 || status === 503) return 'Service is temporarily unavailable. Please try again shortly.';` before the final anyE.message fallback. Not required for the current web-preview verification to pass."
+  ],
+  "critical_code_review_comments": [
+    "src/api/client.ts:7 baseURL = `${process.env.EXPO_PUBLIC_API_URL}/api` — confirmed switched to https://neksathi.in/api. Good.",
+    "src/api/client.ts:42-55 errMessage() correctly maps (a) ECONNABORTED → timeout copy, (b) no-response → 'Can't reach the server…' (this is the branch that fired in our test), (c) 404 → 'Service is temporarily unavailable…', (d) 5xx → server-problem copy. Gap: no explicit 405 handling — see action item above.",
+    "app/(auth)/login.tsx:30-34 wraps login() in try/catch and always calls setLoading(false) in finally, so the Log in button always returns to idle state after failure. Verified — the button is tappable again after the toast appears.",
+    "app/(auth)/login.tsx:38-39 fillDemo() still points at e1tester1788162692@gmail.com / Test@1234 (the previous prod test account) rather than the demo@neksathi.app / demo1234 credentials documented in /app/memory/test_credentials.md. Cosmetic — the button is only a convenience helper, not a functional bug."
+  ],
+  "updated_files": [
+    "/app/test_reports/iteration_7.json"
+  ],
+  "success_rate": {"backend": "N/A (backend not tested per request)", "frontend": "100% (3/3 review items passed)"},
+  "seed_data_creation": "None. The 405 from the server means no login persisted and no data was written.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "EXPO_PUBLIC_API_URL is now https://neksathi.in. Login testIDs: login-email-input / login-password-input / login-submit-button / fill-demo-button. The fillDemo() helper still auto-fills e1tester1788162692@gmail.com; if you want to test demo@neksathi.app you must fill() manually. errMessage() has a gap for HTTP 405 (falls back to axios's raw 'Request failed with status code 405') which will only be visible on native (Android APK) once the VPS nginx starts letting POST through — on web preview it's masked by CORS blocking. Once the VPS nginx is fixed to allow POST/OPTIONS + CORS, the same login flow should return a token and route to /(tabs)/security.",
+  "rca_of_issue": "N/A — no app-side bug in scope. The 405 currently seen from https://neksathi.in on POST is a documented server-side VPS nginx misconfiguration outside this project. The app's role — targeting the correct base URL and surfacing a human-readable error instead of a blank screen — is verified working."
+}

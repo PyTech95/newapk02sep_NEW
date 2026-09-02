@@ -261,3 +261,18 @@ test_plan:
 agent_communication:
     -agent: "main"
     -message: "Backend is live again. Full verification pass across Phases 1-4 against the REAL external backend. Use demo@neksathi.app/demo1234."
+
+## Session (fork) — Point app to production https://neksathi.in
+- Changed EXPO_PUBLIC_API_URL -> https://neksathi.in (client appends /api => https://neksathi.in/api).
+- Confirmed live: GET /api/faqs 200; POST /api/auth/login 405 (nginx); OPTIONS 405 — VPS nginx NOT yet proxying non-GET (server-side fix pending on user's VPS; cannot be fixed from this project).
+- App-side network-error UX already added (errMessage shows 'Service temporarily unavailable / Can't reach the server' instead of blank screen).
+test_plan:
+  current_focus:
+    - "App correctly targets https://neksathi.in/api (absolute https + /api)"
+    - "Login failure (server 405) shows a clear network-error toast, not a blank/white screen"
+  stuck_tasks: []
+  test_all: false
+  test_priority: "high_first"
+agent_communication:
+    -agent: "main"
+    -message: "Backend base URL switched to https://neksathi.in. Its POST/OPTIONS currently return 405 (user's VPS nginx not yet configured for non-GET). This is a SERVER-SIDE blocker outside this project. Verify only: (1) the app issues requests to https://neksathi.in/api/... ; (2) attempting login surfaces a clear error toast (Service temporarily unavailable / Can't reach the server) and does NOT white-screen. Do not treat the 405 as an app code bug."

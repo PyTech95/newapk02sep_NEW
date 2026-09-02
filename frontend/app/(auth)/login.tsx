@@ -35,8 +35,8 @@ export default function Login() {
   };
 
   const fillDemo = () => {
-    setEmail("e1tester1788162692@gmail.com");
-    setPassword("Test@1234");
+    setEmail("demo@neksathi.app");
+    setPassword("demo1234");
   };
 
   return (

@@ -48,7 +48,7 @@ export const errMessage = (e: unknown, fallback = "Something went wrong"): strin
   const detail = anyE.response.data?.detail;
   if (typeof detail === "string") return detail;
   if (Array.isArray(detail) && detail[0]?.msg) return detail[0].msg;
-  if (status === 404) return "Service is temporarily unavailable. Please try again shortly.";
+  if (status === 404 || status === 405) return "Service is temporarily unavailable. Please try again shortly.";
   if (status >= 500) return "The server ran into a problem. Please try again shortly.";
   if (anyE?.message) return anyE.message;
   return fallback;
