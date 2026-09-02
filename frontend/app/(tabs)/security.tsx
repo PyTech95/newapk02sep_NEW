@@ -11,6 +11,7 @@ import {
   addVehicle,
   listCards,
   listDevices,
+  listAlerts,
   listTags,
   listVehicles,
   reportIntruder,
@@ -28,6 +29,7 @@ import { NeonButton } from "@/src/components/NeonButton";
 import { OverlayForm } from "@/src/components/OverlayForm";
 import { ScreenHeader } from "@/src/components/ScreenHeader";
 import { addReceipt } from "@/src/services/receipts";
+import { storage } from "@/src/utils/storage";
 import { useToast } from "@/src/context/ToastContext";
 import { colors, fonts, fontSize, radius, spacing, tint } from "@/src/theme";
 
@@ -36,7 +38,39 @@ type QrKind = "vehicles" | "tags" | "cards";
 
 export default function Security() {
   const [seg, setSeg] = useState<Seg>("qr");
+  const [unread, setUnread] = useState(0);
   const router = useRouter();
+
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      (async () => {
+        try {
+          const all = await listAlerts();
+          const count = Array.isArray(all) ? all.length : 0;
+          const seen = Number((await storage.getItem("alertsSeenCount", "0")) || 0);
+          if (active) setUnread(Math.max(0, count - seen));
+        } catch {
+          /* ignore */
+        }
+      })();
+      return () => {
+        active = false;
+      };
+    }, []),
+  );
+
+  const openAlerts = async () => {
+    try {
+      const all = await listAlerts();
+      await storage.setItem("alertsSeenCount", String(Array.isArray(all) ? all.length : 0));
+    } catch {
+      /* ignore */
+    }
+    setUnread(0);
+    router.push("/alerts-inbox");
+  };
+
   return (
     <View style={styles.root}>
       <ScreenHeader
@@ -45,8 +79,13 @@ export default function Security() {
         accent={colors.teal}
         right={
           <View style={{ flexDirection: "row", gap: spacing.lg }}>
-            <Pressable testID="security-alerts-inbox" onPress={() => router.push("/alerts-inbox")} hitSlop={10}>
+            <Pressable testID="security-alerts-inbox" onPress={openAlerts} hitSlop={10}>
               <Feather name="bell" size={22} color={colors.amber} />
+              {unread > 0 ? (
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>{unread > 9 ? "9+" : unread}</Text>
+                </View>
+              ) : null}
             </Pressable>
             <Pressable testID="security-scan-history" onPress={() => router.push("/scan-history")} hitSlop={10}>
               <Feather name="clock" size={22} color={colors.teal} />
@@ -394,6 +433,8 @@ function SmartQr() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
+  badge: { position: "absolute", top: -6, right: -8, minWidth: 16, height: 16, borderRadius: 8, paddingHorizontal: 3, backgroundColor: colors.red, alignItems: "center", justifyContent: "center" },
+  badgeText: { color: "#fff", fontFamily: fonts.displaySemi, fontSize: 10 },
   segment: { flexDirection: "row", marginHorizontal: spacing.lg, marginTop: spacing.md, backgroundColor: colors.surfaceTertiary, borderRadius: radius.pill, padding: 4 },
   segItem: { flex: 1, flexDirection: "row", gap: 6, paddingVertical: spacing.sm, alignItems: "center", justifyContent: "center", borderRadius: radius.pill },
   segText: { color: colors.textDim, fontFamily: fonts.displaySemi, fontSize: fontSize.base },

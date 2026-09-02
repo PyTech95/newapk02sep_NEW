@@ -78,6 +78,7 @@ export default function AlertsInbox() {
                   router.push({
                     pathname: "/alert-detail",
                     params: {
+                      id: a.id,
                       label,
                       type,
                       lat: lat != null ? String(lat) : "",

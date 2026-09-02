@@ -1,7 +1,9 @@
 import { Feather } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { Linking, Platform, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useEffect, useState } from "react";
+import { Image, Linking, Platform, ScrollView, StyleSheet, Text, View } from "react-native";
 
+import { listAlerts } from "@/src/api/endpoints";
 import { GlassCard } from "@/src/components/GlassCard";
 import { NeonButton } from "@/src/components/NeonButton";
 import { ScanMap } from "@/src/components/ScanMap";
@@ -11,6 +13,7 @@ import { colors, fonts, fontSize, radius, spacing } from "@/src/theme";
 export default function AlertDetail() {
   const router = useRouter();
   const p = useLocalSearchParams<{
+    id?: string;
     label?: string;
     type?: string;
     lat?: string;
@@ -19,6 +22,17 @@ export default function AlertDetail() {
     note?: string;
     created?: string;
   }>();
+
+  const [photo, setPhoto] = useState<string | null>(null);
+  useEffect(() => {
+    if (!p.id) return;
+    listAlerts()
+      .then((all) => {
+        const a: any = Array.isArray(all) ? all.find((x: any) => x.id === p.id) : null;
+        if (a?.evidence_photo_base64) setPhoto(a.evidence_photo_base64 as string);
+      })
+      .catch(() => {});
+  }, [p.id]);
 
   const lat = p.lat ? Number(p.lat) : null;
   const lng = p.lng ? Number(p.lng) : null;
@@ -48,6 +62,16 @@ export default function AlertDetail() {
           </View>
           {p.note ? <Text style={styles.note}>&ldquo;{p.note}&rdquo;</Text> : <Text style={styles.noteMuted}>No note left by the finder.</Text>}
         </GlassCard>
+
+        {photo ? (
+          <GlassCard style={styles.card} padded={false}>
+            <Image
+              source={{ uri: photo.startsWith("data:") ? photo : `data:image/jpeg;base64,${photo}` }}
+              style={styles.photo}
+              resizeMode="cover"
+            />
+          </GlassCard>
+        ) : null}
 
         {hasLoc ? (
           <GlassCard style={styles.mapCard} padded={false}>
@@ -90,6 +114,7 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
   scroll: { padding: spacing.lg, gap: spacing.md, paddingBottom: spacing.xxxl },
   card: { gap: spacing.sm },
+  photo: { width: "100%", height: 220, borderRadius: radius.lg },
   headRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   badge: { paddingHorizontal: spacing.md, paddingVertical: 5, borderRadius: radius.pill },
   badgeText: { fontFamily: fonts.displaySemi, fontSize: fontSize.sm, textTransform: "capitalize" },
