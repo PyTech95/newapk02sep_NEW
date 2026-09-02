@@ -44,9 +44,14 @@ export default function Security() {
         subtitle="Anti-theft & Smart QR"
         accent={colors.teal}
         right={
-          <Pressable testID="security-scan-history" onPress={() => router.push("/scan-history")} hitSlop={10}>
-            <Feather name="clock" size={22} color={colors.teal} />
-          </Pressable>
+          <View style={{ flexDirection: "row", gap: spacing.lg }}>
+            <Pressable testID="security-alerts-inbox" onPress={() => router.push("/alerts-inbox")} hitSlop={10}>
+              <Feather name="bell" size={22} color={colors.amber} />
+            </Pressable>
+            <Pressable testID="security-scan-history" onPress={() => router.push("/scan-history")} hitSlop={10}>
+              <Feather name="clock" size={22} color={colors.teal} />
+            </Pressable>
+          </View>
         }
       />
       <View style={styles.segment}>

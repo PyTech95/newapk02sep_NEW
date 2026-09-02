@@ -1,4 +1,5 @@
 import { Feather } from "@expo/vector-icons";
+import { useAudioPlayer, setAudioModeAsync } from "expo-audio";
 import { useEffect, useRef, useState } from "react";
 import { Animated, Easing, Modal, Platform, Pressable, StyleSheet, Text, useWindowDimensions, Vibration, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -20,6 +21,9 @@ export function LiveOverlays() {
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
   const [call, setCall] = useState<IncomingCall | null>(null);
+  const ringtone = useAudioPlayer(require("../../assets/sounds/ringtone.wav"));
+  const callRef = useRef<IncomingCall | null>(null);
+  callRef.current = call;
   const handledCalls = useRef<Set<string>>(new Set());
   const knownAlerts = useRef<Set<string>>(new Set());
   const alertsPrimed = useRef(false);
@@ -66,8 +70,19 @@ export function LiveOverlays() {
           const a: any = fresh[0];
           const label = a.number_plate || a.name || "your item";
           const kind = String(a.type || "alert").replace(/_/g, " ");
-          if (Platform.OS !== "web") Vibration.vibrate(400);
-          toast(`🔔 New ${kind} on ${label}`, "error");
+          // Ring the app on a new alert too (sound + strong buzz), unless a call is ringing.
+          if (Platform.OS !== "web") Vibration.vibrate([0, 500, 250, 500]);
+          if (!callRef.current) {
+            try {
+              setAudioModeAsync({ playsInSilentMode: true }).catch(() => {});
+              ringtone.loop = false;
+              ringtone.seekTo(0);
+              ringtone.play();
+            } catch {
+              /* ignore */
+            }
+          }
+          toast(`🔔 New ${kind} on ${label} — open Alerts to view`, "error");
         }
       } catch {
         /* ignore */
@@ -81,20 +96,35 @@ export function LiveOverlays() {
     };
   }, [user?.id]);
 
-  // Ring (buzz + pulse) while a call is showing.
+  // Ring (sound + buzz + pulse) while a call is showing.
   useEffect(() => {
     if (!call) return;
     if (Platform.OS !== "web") Vibration.vibrate([0, 700, 600, 700, 600], true);
+    // Play the looping ringtone (best-effort; ignore autoplay limits on web).
+    try {
+      setAudioModeAsync({ playsInSilentMode: true }).catch(() => {});
+      ringtone.loop = true;
+      ringtone.seekTo(0);
+      ringtone.play();
+    } catch {
+      /* ignore */
+    }
     const loop = Animated.loop(
       Animated.sequence([
-        Animated.timing(pulse, { toValue: 1, duration: 700, easing: Easing.out(Easing.ease), useNativeDriver: true }),
-        Animated.timing(pulse, { toValue: 0, duration: 700, easing: Easing.in(Easing.ease), useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 1, duration: 700, easing: Easing.out(Easing.ease), useNativeDriver: Platform.OS !== "web" }),
+        Animated.timing(pulse, { toValue: 0, duration: 700, easing: Easing.in(Easing.ease), useNativeDriver: Platform.OS !== "web" }),
       ]),
     );
     loop.start();
     return () => {
       Vibration.cancel();
       loop.stop();
+      try {
+        ringtone.pause();
+        ringtone.seekTo(0);
+      } catch {
+        /* ignore */
+      }
     };
   }, [call]);
 
@@ -115,7 +145,7 @@ export function LiveOverlays() {
 
   const onAccept = (c: IncomingCall) => {
     dismiss(c);
-    toast("Answering with live voice opens in the installed app build", "success");
+    toast("Live in-app voice answering isn't enabled in this version yet — the caller can still reach you on your registered number.", "success");
   };
 
   if (!call) return null;

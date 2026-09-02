@@ -75,7 +75,8 @@
           "cameraPermission": "Scan a NekSathi QR to help return a lost item"
         }
       ],
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      "expo-audio"
     ],
     "experiments": {
       "typedRoutes": true

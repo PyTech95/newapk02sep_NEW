@@ -315,3 +315,11 @@ agent_communication:
 agent_communication:
     -agent: "main"
     -message: "App now on production api.neksathi.in. Full E2E verification: auth, in-app scan flow (create a vehicle first via Security->Smart QR Add, then /scan-report?qrId=<qr> reason->Send notification (incident) + Call owner), incoming-call ring overlay, and new-alert toast."
+
+## Session (fork) — Ring sound + Alerts Inbox + Seed data (api.neksathi.in)
+- Ring sound: added expo-audio; synthesized assets/sounds/ringtone.wav (3s loop); LiveOverlays plays it looping while a call is active (native; web autoplay may be blocked). App boots fine with the asset.
+- Alerts Inbox: new /alerts-inbox (list of GET /api/alerts with icon/plate/type/time + map-pin badge) and /alert-detail (type, note, ScanMap finder marker [web fallback], coords, Open-in-Maps, Call finder tel:). Entry point: bell icon in Security header.
+- Seeded api.neksathi.in demo account: 3 vehicles, 2 tags, 2 cards.
+agent_communication:
+    -agent: "main"
+    -message: "Verify frontend: (1) Security header bell -> /alerts-inbox lists alerts; located alerts show a map-pin; tapping a row opens /alert-detail with type/time/note, a map area, coordinates, 'Open in Maps' and a 'Call finder' button (tel:). (2) Incoming-call ring overlay still appears and dismisses (sound is native-only; on web just confirm no crash). Backend api.neksathi.in; demo@neksathi.app/demo1234; vehicle qr 9a85011b-7c38-4105-932b-0f8e2a50df64 for call/start + incident."

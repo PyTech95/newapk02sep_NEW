@@ -1,0 +1,29 @@
+{
+  "summary": "All 4 requested frontend flows PASS against LIVE https://api.neksathi.in with demo@neksathi.app. (1) ALERTS INBOX — after login on Security tab, the bell icon (testID 'security-alerts-inbox') opens /alerts-inbox titled 'Scan Alerts'; 10 alert rows render with plate 'MH14DEMO01', humanised type 'Wrong Parking · 6m Ago', and the teal map-pin badge on the first row (has finder location). (2) ALERT DETAIL — tapping the first row navigates to /alert-detail showing the 'Wrong Parking' badge, timestamp '9/2/2026, 10:43:52 AM', 'No note left by the finder.' muted text, the web map fallback 'Map view available on the mobile app', coordinates '19.07600, 72.87700', an 'Open in Maps' link, and the 'Call finder (+919812345678)' button (testID 'alert-call-finder', tel: link). (3) RING OVERLAY REGRESSION — browser-side POST to /api/public/qr/9a85011b-.../call/start returned 200 with a call_id; within ~6s the responsive incoming-call overlay (testID 'incoming-call-overlay') appeared showing 'Someone needs to reach you about vehicle MH14DEMO01' with Decline/Accept, and Decline dismissed it cleanly. No crash from ringtone on web (expo-audio best-effort). (4) TOAST + SMOKE — POST /api/public/qr/.../incident with {type:'wrong_parking'} returned 200 and within ~14s the '🔔 New wrong parking on MH14DEMO01' toast appeared over the Security tab; app stayed healthy (tab-security present). Ringtone asset present at /app/frontend/assets/sounds/ringtone.wav (264KB) and bundled without error. Only cosmetic web warnings remain: 'shadow*/pointerEvents deprecated' and 'expo-notifications listener not supported on web' — no functional impact.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": [
+      {"component": "LiveOverlays.tsx (web warnings)", "issue": "Cosmetic-only web-preview warnings 'shadow* deprecated' and 'props.pointerEvents deprecated'. No functional impact; native build unaffected. Reference: /app/frontend/src/components/LiveOverlays.tsx"}
+    ]
+  },
+  "test_report_links": ["/tmp/alerts_inbox.png", "/tmp/alert_detail.png", "/tmp/call_overlay.png", "/tmp/toast.png"],
+  "action_items": [
+    "Optional cosmetic: migrate remaining shadow* style props to boxShadow and props.pointerEvents to style.pointerEvents to silence web-preview deprecation warnings."
+  ],
+  "critical_code_review_comments": [
+    "alerts-inbox.tsx correctly guards for empty state, primes null vs [] distinctly, uses testID `alert-row-<id>` per row and threads finder lat/lng/phone/note/created into /alert-detail params.",
+    "alert-detail.tsx uses the ScanMap.web.tsx fallback ('Map view available on the mobile app') and correctly opens platform-specific maps URL from lat,lng.",
+    "LiveOverlays.tsx uses expo-audio (useAudioPlayer + setAudioModeAsync) — NOT the deprecated expo-av — matching current Expo guidance. Loop/seek/play wrapped in try/catch so web autoplay restrictions don't crash the app.",
+    "Alerts poll (15s) uses `alertsPrimed` ref to avoid firing toasts for historical alerts on first fetch — good UX pattern."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A (skipped per request)", "frontend": "100% (4/4 flows)"},
+  "seed_data_creation": "Triggered one masked-call (call/start) and one wrong_parking incident against QR 9a85011b-7c38-4105-932b-0f8e2a50df64 (MH14DEMO01) during the run.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Preview: https://mobile-safety-app-2.preview.emergentagent.com | API: https://api.neksathi.in | Login: demo@neksathi.app / demo1234 via [data-testid=fill-demo-button] then [data-testid=login-submit-button]. TestIDs verified: security-alerts-inbox, alert-row-<id>, alert-call-finder, incoming-call-overlay, call-decline, call-accept, tab-security. Poll intervals: calls=5s, alerts=15s (alerts primed on first fetch, so wait ~15s after posting an incident for the toast).",
+  "rca_of_issue": "N/A — feature verification is fully green."
+}

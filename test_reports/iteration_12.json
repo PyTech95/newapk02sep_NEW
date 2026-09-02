@@ -1,0 +1,25 @@
+{
+  "summary": "All 3 requested flows PASS on the LIVE app (https://api.neksathi.in via preview) with demo@neksathi.app / demo1234, mobile viewport 390x844. (1) NEW ALERT RING (primary fix): after login, browser-side POST /api/public/qr/9a85011b-.../incident {type:'wrong_parking',note:'T1 test alert'} returned 200 with id=52f80e7a-... and within ~10s the toast '🔔 New wrong parking on MH14DEMO01 — open Alerts to view' appeared as a top-of-screen banner over the Security tab; app stayed healthy (no red screen, tab bar still interactive, expo-audio best-effort so no web crash from missing audio autoplay). (2) INCOMING CALL ACCEPT MESSAGE (reworded): POST /api/public/qr/.../call/start returned 200 with call_id=666beb5c-...; the ring overlay (testID incoming-call-overlay) appeared within ~5s showing 'Someone needs to reach you about vehicle MH14DEMO01' with Decline+Accept circles; tapping Accept (testID call-accept) dismissed the overlay AND displayed the honest toast \"Live in-app voice answering isn't enabled in this version yet — the caller can still reach you on your registered number.\" — the old 'installed app build' wording is NOT present. (3) REGRESSION: Decline (testID call-decline) on a second call dismissed the overlay cleanly; Alerts Inbox opens via bell (17 rows rendered incl. the fresh 'Wrong Parking · Just Now MH14DEMO01' seeded above), and tapping the first row loads /alert-detail with the 'Wrong Parking' badge, timestamp, and empty-note/location fallbacks — full regression green. Ringtone asset intact at /app/frontend/assets/sounds/ringtone.wav (264KB). Only cosmetic web warnings remain (shadow*/pointerEvents deprecated, expo-notifications web listener no-op) — no functional impact.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": []
+  },
+  "test_report_links": ["/tmp/alert_toast.png", "/tmp/overlay.png", "/tmp/accept_toast.png", "/tmp/alerts_inbox.png", "/tmp/alert_detail.png"],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "LiveOverlays.tsx onAccept (line 146-149) now shows an honest message: 'Live in-app voice answering isn't enabled in this version yet — the caller can still reach you on your registered number.' — replaces the misleading 'installed app build' wording. Matches user intent.",
+    "Alert poll (lines 55-97) correctly primes knownAlerts on first fetch so historical alerts don't trigger toasts; only genuinely NEW alerts (after the first tick) fire the '🔔' toast + vibration + ringtone. Ringtone play is wrapped in try/catch so web autoplay restrictions don't crash the app.",
+    "Uses expo-audio (useAudioPlayer + setAudioModeAsync) — NOT deprecated expo-av — aligned with current Expo guidance.",
+    "callRef guard (line 75) prevents ringtone double-play when a call is already showing while an alert arrives — good UX detail."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A (skipped per request)", "frontend": "100% (3/3 flows, plus decline regression)"},
+  "seed_data_creation": "During the run: 1 wrong_parking incident (id 52f80e7a-...) and 2 masked-calls (call_ids 666beb5c-..., plus one more) against QR 9a85011b-7c38-4105-932b-0f8e2a50df64 (MH14DEMO01).",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Preview: https://mobile-safety-app-2.preview.emergentagent.com | API: https://api.neksathi.in | Login: click [data-testid=fill-demo-button] then [data-testid=login-submit-button] (or fill email/password inputs). Auth token key in localStorage is 'neksathi_token' (not 'auth_token'). Verified testIDs: incoming-call-overlay, call-accept, call-decline, tab-security, security-alerts-inbox, alert-row-<id>. Poll intervals: calls=5s (unprimed → next call shows within ~5s), alerts=15s primed on first fetch (so a freshly posted incident shows via toast on the NEXT tick — allow up to ~20s).",
+  "rca_of_issue": "N/A — the reworded Accept toast and new-alert toast+vibration path are both working as requested. The remaining architectural note: true two-way in-app voice still requires a native WebRTC module (out of web-preview scope, honestly communicated to users now)."
+}
