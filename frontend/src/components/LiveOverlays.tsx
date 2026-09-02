@@ -1,11 +1,12 @@
 import { Feather } from "@expo/vector-icons";
 import { useEffect, useRef, useState } from "react";
-import { Animated, Easing, Modal, Platform, Pressable, StyleSheet, Text, Vibration, View } from "react-native";
+import { Animated, Easing, Modal, Platform, Pressable, StyleSheet, Text, useWindowDimensions, Vibration, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { IncomingCall, listAlerts, listIncomingCalls, rejectCall } from "@/src/api/endpoints";
 import { useAuth } from "@/src/context/AuthContext";
 import { useToast } from "@/src/context/ToastContext";
-import { colors, fonts, fontSize, radius, spacing } from "@/src/theme";
+import { colors, fonts, fontSize, spacing } from "@/src/theme";
 
 const CALL_POLL_MS = 5000;
 const ALERT_POLL_MS = 15000;
@@ -16,6 +17,8 @@ const ALERT_POLL_MS = 15000;
 export function LiveOverlays() {
   const { user } = useAuth();
   const toast = useToast();
+  const insets = useSafeAreaInsets();
+  const { width, height } = useWindowDimensions();
   const [call, setCall] = useState<IncomingCall | null>(null);
   const handledCalls = useRef<Set<string>>(new Set());
   const knownAlerts = useRef<Set<string>>(new Set());
@@ -117,29 +120,53 @@ export function LiveOverlays() {
 
   if (!call) return null;
 
+  // Responsive sizing based on the current viewport.
+  const avatar = Math.min(Math.max(width * 0.30, 96), 148);
+  const ring = avatar * 1.55;
+  const iconSize = avatar * 0.4;
+  const btn = Math.min(Math.max(width * 0.36, 128), 168);
   const scale = pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.18] });
-  const glow = pulse.interpolate({ inputRange: [0, 1], outputRange: [0.25, 0.6] });
+  const glow = pulse.interpolate({ inputRange: [0, 1], outputRange: [0.2, 0.55] });
 
   return (
-    <Modal visible transparent animationType="fade" onRequestClose={() => onDecline(call)}>
-      <View style={styles.backdrop} testID="incoming-call-overlay">
-        <Text style={styles.tag}>NekSathi · incoming call</Text>
-        <Animated.View style={[styles.ringGlow, { opacity: glow, transform: [{ scale }] }]} />
-        <View style={styles.avatar}>
-          <Feather name="phone-incoming" size={40} color={colors.bg} />
+    <Modal visible transparent animationType="fade" statusBarTranslucent onRequestClose={() => onDecline(call)}>
+      <View
+        style={[styles.backdrop, { paddingTop: insets.top + spacing.xxl, paddingBottom: insets.bottom + spacing.xxl }]}
+        testID="incoming-call-overlay"
+      >
+        <View style={styles.top}>
+          <Text style={styles.tag}>NekSathi · incoming call</Text>
         </View>
-        <Text style={styles.title}>Someone needs to reach you</Text>
-        <Text style={styles.sub}>
-          about {call.number_plate ? `vehicle ${call.number_plate}` : "your tagged item"}
-        </Text>
-        <View style={styles.actions}>
-          <Pressable style={[styles.btn, styles.decline]} onPress={() => onDecline(call)} testID="call-decline">
-            <Feather name="phone-off" size={24} color="#fff" />
+
+        <View style={styles.middle}>
+          <View style={{ width: ring, height: ring, alignItems: "center", justifyContent: "center", marginBottom: spacing.xl }}>
+            <Animated.View
+              style={[styles.ringGlow, { width: ring, height: ring, borderRadius: ring / 2, opacity: glow, transform: [{ scale }] }]}
+            />
+            <View style={[styles.avatar, { width: avatar, height: avatar, borderRadius: avatar / 2 }]}>
+              <Feather name="phone-incoming" size={iconSize} color={colors.bg} />
+            </View>
+          </View>
+          <Text style={[styles.title, { fontSize: Math.min(width * 0.07, 28) }]} numberOfLines={2} adjustsFontSizeToFit>
+            Someone needs to reach you
+          </Text>
+          <Text style={styles.sub} numberOfLines={2}>
+            about {call.number_plate ? `vehicle ${call.number_plate}` : "your tagged item"}
+          </Text>
+        </View>
+
+        <View style={[styles.actions, height < 640 && { gap: spacing.lg }]}>
+          <Pressable style={styles.action} onPress={() => onDecline(call)} testID="call-decline">
+            <View style={[styles.circle, styles.decline, { width: btn * 0.42, height: btn * 0.42, borderRadius: btn * 0.21 }]}>
+              <Feather name="phone-off" size={btn * 0.2} color="#fff" />
+            </View>
             <Text style={styles.btnText}>Decline</Text>
           </Pressable>
-          <Pressable style={[styles.btn, styles.accept]} onPress={() => onAccept(call)} testID="call-accept">
-            <Feather name="phone-call" size={24} color="#04120c" />
-            <Text style={[styles.btnText, { color: "#04120c" }]}>Accept</Text>
+          <Pressable style={styles.action} onPress={() => onAccept(call)} testID="call-accept">
+            <View style={[styles.circle, styles.accept, { width: btn * 0.42, height: btn * 0.42, borderRadius: btn * 0.21 }]}>
+              <Feather name="phone-call" size={btn * 0.2} color="#04120c" />
+            </View>
+            <Text style={styles.btnText}>Accept</Text>
           </Pressable>
         </View>
       </View>
@@ -148,15 +175,18 @@ export function LiveOverlays() {
 }
 
 const styles = StyleSheet.create({
-  backdrop: { flex: 1, backgroundColor: "rgba(4,4,12,0.97)", alignItems: "center", justifyContent: "center", padding: spacing.xl },
-  tag: { color: colors.textDim, fontFamily: fonts.body, fontSize: fontSize.sm, letterSpacing: 1, textTransform: "uppercase", marginBottom: spacing.xxl },
-  ringGlow: { position: "absolute", width: 160, height: 160, borderRadius: 80, backgroundColor: colors.green, top: "34%" },
-  avatar: { width: 108, height: 108, borderRadius: 54, backgroundColor: colors.green, alignItems: "center", justifyContent: "center", marginBottom: spacing.xl },
-  title: { color: colors.text, fontFamily: fonts.display, fontSize: fontSize.xxl, textAlign: "center" },
+  backdrop: { flex: 1, backgroundColor: "rgba(4,4,12,0.97)", alignItems: "center", justifyContent: "space-between", paddingHorizontal: spacing.xl },
+  top: { alignItems: "center" },
+  tag: { color: colors.textDim, fontFamily: fonts.body, fontSize: fontSize.sm, letterSpacing: 1, textTransform: "uppercase" },
+  middle: { flex: 1, alignItems: "center", justifyContent: "center", width: "100%" },
+  ringGlow: { position: "absolute", backgroundColor: colors.green },
+  avatar: { backgroundColor: colors.green, alignItems: "center", justifyContent: "center" },
+  title: { color: colors.text, fontFamily: fonts.display, textAlign: "center" },
   sub: { color: colors.textDim, fontFamily: fonts.body, fontSize: fontSize.base, textAlign: "center", marginTop: spacing.xs },
-  actions: { flexDirection: "row", gap: spacing.xxl, marginTop: spacing.xxxl },
-  btn: { alignItems: "center", justifyContent: "center", gap: 6, width: 120, paddingVertical: spacing.md, borderRadius: radius.lg },
+  actions: { flexDirection: "row", justifyContent: "center", gap: spacing.xxxl, width: "100%" },
+  action: { alignItems: "center", gap: spacing.sm },
+  circle: { alignItems: "center", justifyContent: "center" },
   decline: { backgroundColor: colors.red },
   accept: { backgroundColor: colors.green },
-  btnText: { color: "#fff", fontFamily: fonts.displaySemi, fontSize: fontSize.base },
+  btnText: { color: colors.text, fontFamily: fonts.displaySemi, fontSize: fontSize.base },
 });

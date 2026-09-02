@@ -1,0 +1,23 @@
+{
+  "summary": "Frontend-only responsive re-test of LiveOverlays incoming-call screen at 390x844. ALL 4 requested behaviors PASS. Overlay filled the viewport exactly (390x844, scrollW==winW so no horizontal overflow), pulsing green avatar rendered, title 'Someone needs to reach you' + subtitle 'about vehicle TSF714F3' visible, and both circular Decline (x=112,y=727,58x85) and Accept (x=219,y=727,58x85) sit near the bottom fully inside the viewport (no cutoff). Decline dismissed the overlay and it did not re-appear during the next full 7s poll window. Accept dismissed the overlay and the toast 'Answering with live voice opens in the installed app build' appeared (this is the expected preview behavior, not an error). Regression: after POST /api/public/qr/{id}/incident {type:'wrong_parking'} the alert toast '🔔 New wrong parking on TSF714F3' fired within ~8s. App boots, demo login via fill-demo-button + login-submit-button works, tabs render.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": []
+  },
+  "test_report_links": ["/app/test_reports/iteration_9.json"],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "LiveOverlays.tsx: useNativeDriver:true logs the standard 'RCTAnimation module missing, falling back to JS-based animation' warning on web preview — cosmetic only, ring still pulses. Consider gating with Platform.OS !== 'web' for cleaner console.",
+    "Deprecation warnings from RN Web appeared during boot ('shadow*' style props, props.pointerEvents). Not from LiveOverlays but worth cleaning up elsewhere in the codebase."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "n/a (skipped)", "frontend": "100%"},
+  "seed_data_creation": "Triggered 2 masked-call rings (10ce735a-..., b94723f6-...) and 1 incident (05e2fcfb-...) against demo QR 17cc2084-117a-439f-b3d1-273479b64f11 via public unauthenticated endpoints.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Preview: https://mobile-safety-app-2.preview.emergentagent.com | API: https://neksathi-deploy.preview.emergentagent.com/api | Login demo@neksathi.app/demo1234 via fill-demo-button+login-submit-button. Ring: POST /api/public/qr/17cc2084-117a-439f-b3d1-273479b64f11/call/start {} (5s poll). Alert: POST /api/public/qr/17cc2084-117a-439f-b3d1-273479b64f11/incident {type:'wrong_parking'} (15s poll). TestIDs: incoming-call-overlay, call-decline, call-accept, app-toast. Overlay is a full-screen RN Modal with responsive sizing (avatar=clamp(width*0.30,96,148), btn=clamp(width*0.36,128,168)); works cleanly at 390x844.",
+  "rca_of_issue": "N/A — positive-path responsive/regression verification. Prior iteration 8 already confirmed functional correctness; this iteration validates the responsive redesign requested by the user."
+}
