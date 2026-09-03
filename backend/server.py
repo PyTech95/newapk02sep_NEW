@@ -9,7 +9,7 @@ from datetime import datetime, timezone, timedelta
 import jwt
 import bcrypt
 import httpx
-from fastapi import FastAPI, APIRouter, HTTPException, Depends
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request
 from fastapi.responses import HTMLResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from dotenv import load_dotenv
@@ -17,6 +17,8 @@ from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel, EmailStr, Field
 from typing import Optional, List
+
+from services import otp_service
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / ".env")
@@ -286,29 +288,40 @@ async def login(body: LoginIn):
     return await _auth_response(u)
 
 
+def _client_ip(request: Request) -> str:
+    fwd = request.headers.get("x-forwarded-for")
+    if fwd:
+        return fwd.split(",")[0].strip()
+    return request.client.host if request.client else "unknown"
+
+
 @api.post("/auth/otp/request")
-async def otp_request(body: OtpReqIn):
-    code = f"{random.randint(0, 999999):06d}"
-    await db.otps.update_one(
-        {"phone": body.phone},
-        {"$set": {"code": code, "expires": (datetime.now(timezone.utc) + timedelta(minutes=5)).isoformat()}},
-        upsert=True,
-    )
-    # No WhatsApp provider in this workspace -> expose dev_code so the flow is usable.
-    return {"ok": True, "channel": "whatsapp", "dev_code": code, "live": False}
+async def otp_request(body: OtpReqIn, request: Request):
+    """Send a WhatsApp OTP via TezSandesh (managed provider)."""
+    return await otp_service.request_otp(db, body.phone, _client_ip(request))
+
+
+@api.post("/auth/otp/resend")
+async def otp_resend(body: OtpReqIn, request: Request):
+    """Resend the current OTP challenge for this phone."""
+    return await otp_service.resend_otp(db, body.phone, _client_ip(request))
+
+
+@api.get("/auth/otp/status/{request_id}")
+async def otp_status(request_id: str, u: dict = Depends(current_user)):
+    """Diagnostic delivery/verification status for a provider request_id."""
+    return await otp_service.get_status(request_id)
 
 
 @api.post("/auth/otp/verify")
-async def otp_verify(body: OtpVerifyIn):
-    rec = await db.otps.find_one({"phone": body.phone})
-    if not rec or rec.get("code") != body.code.strip():
-        raise HTTPException(400, "Invalid or expired code")
-    await db.otps.delete_one({"phone": body.phone})
-    u = await db.users.find_one({"phone": body.phone})
+async def otp_verify(body: OtpVerifyIn, request: Request):
+    """Verify the OTP with TezSandesh, then issue the existing NekSathi session."""
+    phone = await otp_service.verify_and_get_phone(db, body.phone, body.code, _client_ip(request))
+    u = await db.users.find_one({"phone": phone})
     if not u:
         u = {
             "id": str(uuid.uuid4()), "email": f"{uuid.uuid4().hex[:8]}@phone.neksathi",
-            "name": body.name or "NekSathi User", "phone": body.phone,
+            "name": body.name or "NekSathi User", "phone": phone,
             "password": hash_pw(uuid.uuid4().hex), "is_admin": False,
             "notify_prefs": dict(DEFAULT_PREFS), "avatar_base64": None, "created_at": now_iso(),
         }

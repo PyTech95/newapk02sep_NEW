@@ -23,11 +23,18 @@ export const login = (email: string, password: string) =>
 export const register = (name: string, email: string, phone: string, password: string) =>
   api.post<AuthResponse>("/auth/register", { name, email, phone, password }).then((r) => r.data);
 
+type OtpSendResult = { ok: boolean; channel: string; dev_code?: string | null; live: boolean; expires_in?: number };
+
 export const otpRequest = (phone: string) =>
-  api.post<{ ok: boolean; channel: string; dev_code: string | null; live: boolean }>(
-    "/auth/otp/request",
-    { phone },
-  ).then((r) => r.data);
+  api.post<OtpSendResult>("/auth/otp/request", { phone }).then((r) => r.data);
+
+// Resend the current WhatsApp OTP challenge. Falls back to a fresh send when
+// the backend has no dedicated resend route yet (older deployments).
+export const otpResend = (phone: string) =>
+  api
+    .post<OtpSendResult>("/auth/otp/resend", { phone })
+    .then((r) => r.data)
+    .catch(() => otpRequest(phone));
 
 export const otpVerify = (phone: string, code: string, name?: string) =>
   api.post<AuthResponse>("/auth/otp/verify", { phone, code, name }).then((r) => r.data);

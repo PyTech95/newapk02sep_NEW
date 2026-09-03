@@ -1,15 +1,17 @@
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { errMessage } from "@/src/api/client";
-import { otpRequest } from "@/src/api/endpoints";
+import { otpRequest, otpResend } from "@/src/api/endpoints";
 import { AuthShell } from "@/src/components/AuthShell";
 import { Field } from "@/src/components/Field";
 import { NeonButton } from "@/src/components/NeonButton";
 import { useAuth } from "@/src/context/AuthContext";
 import { useToast } from "@/src/context/ToastContext";
 import { colors, fonts, fontSize, spacing } from "@/src/theme";
+
+const RESEND_SECONDS = 60;
 
 export default function Otp() {
   const { verifyOtp } = useAuth();
@@ -20,6 +22,26 @@ export default function Otp() {
   const [code, setCode] = useState("");
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const startCooldown = () => {
+    setCooldown(RESEND_SECONDS);
+    if (timerRef.current) clearInterval(timerRef.current);
+    timerRef.current = setInterval(() => {
+      setCooldown((s) => {
+        if (s <= 1 && timerRef.current) {
+          clearInterval(timerRef.current);
+          timerRef.current = null;
+        }
+        return s - 1;
+      });
+    }, 1000);
+  };
+
+  useEffect(() => () => {
+    if (timerRef.current) clearInterval(timerRef.current);
+  }, []);
 
   const onRequest = async () => {
     if (!phone.trim()) {
@@ -30,6 +52,7 @@ export default function Otp() {
     try {
       const res = await otpRequest(phone.trim());
       setSent(true);
+      startCooldown();
       if (res.dev_code) {
         setCode(res.dev_code);
         toast(`Dev code: ${res.dev_code}`, "info");
@@ -38,6 +61,20 @@ export default function Otp() {
       }
     } catch (e) {
       toast(errMessage(e, "Could not send code"), "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const onResend = async () => {
+    if (cooldown > 0) return;
+    setLoading(true);
+    try {
+      await otpResend(phone.trim());
+      startCooldown();
+      toast("New code sent via WhatsApp", "success");
+    } catch (e) {
+      toast(errMessage(e, "Could not resend code"), "error");
     } finally {
       setLoading(false);
     }
@@ -88,8 +125,15 @@ export default function Otp() {
           <Field label="CODE" icon="hash" placeholder="6-digit code" keyboardType="number-pad" value={code} onChangeText={setCode} testID="otp-code-input" />
           <Field label="NAME (if new)" icon="user" placeholder="Optional for new users" value={name} onChangeText={setName} testID="otp-name-input" />
           <NeonButton label="Verify & continue" icon="check" onPress={onVerify} loading={loading} testID="otp-verify-button" />
-          <Pressable testID="otp-resend-button" onPress={onRequest} style={styles.resend}>
-            <Text style={styles.resendText}>Resend code</Text>
+          <Pressable
+            testID="otp-resend-button"
+            onPress={onResend}
+            disabled={cooldown > 0 || loading}
+            style={styles.resend}
+          >
+            <Text style={[styles.resendText, cooldown > 0 && styles.resendDisabled]}>
+              {cooldown > 0 ? `Resend code in ${cooldown}s` : "Resend code"}
+            </Text>
           </Pressable>
         </>
       )}
@@ -101,6 +145,7 @@ export default function Otp() {
 const styles = StyleSheet.create({
   resend: { alignItems: "center", paddingVertical: spacing.xs },
   resendText: { color: colors.textDim, fontFamily: fonts.body, fontSize: fontSize.sm, textDecorationLine: "underline" },
+  resendDisabled: { textDecorationLine: "none", opacity: 0.6 },
   note: { color: colors.textDim, fontFamily: fonts.body, fontSize: fontSize.sm, textAlign: "center", marginTop: spacing.xs },
   footer: { flexDirection: "row", justifyContent: "center", marginTop: spacing.xl },
   link: { color: colors.cyan, fontFamily: fonts.displaySemi, fontSize: fontSize.base },
