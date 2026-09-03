@@ -14,13 +14,13 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import InCallManager from "react-native-incall-manager";
+import InCallManager from "@/src/lib/incall";
 import {
   mediaDevices,
   RTCPeerConnection,
   RTCSessionDescription,
   RTCIceCandidate,
-} from "react-native-webrtc";
+} from "@/src/lib/webrtc";
 
 import {
   IncomingCall,

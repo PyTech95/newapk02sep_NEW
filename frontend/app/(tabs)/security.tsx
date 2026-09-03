@@ -11,7 +11,7 @@ import {
   addVehicle,
   listCards,
   listDevices,
-  listAlerts,
+  listIncidentDetails,
   listTags,
   listVehicles,
   reportIntruder,
@@ -29,7 +29,6 @@ import { NeonButton } from "@/src/components/NeonButton";
 import { OverlayForm } from "@/src/components/OverlayForm";
 import { ScreenHeader } from "@/src/components/ScreenHeader";
 import { addReceipt } from "@/src/services/receipts";
-import { storage } from "@/src/utils/storage";
 import { useToast } from "@/src/context/ToastContext";
 import { colors, fonts, fontSize, radius, spacing, tint } from "@/src/theme";
 
@@ -46,10 +45,9 @@ export default function Security() {
       let active = true;
       (async () => {
         try {
-          const all = await listAlerts();
-          const count = Array.isArray(all) ? all.length : 0;
-          const seen = Number((await storage.getItem("alertsSeenCount", "0")) || 0);
-          if (active) setUnread(Math.max(0, count - seen));
+          const all = await listIncidentDetails();
+          const needReply = all.filter((i) => !i.owner_response && !i.resolved).length;
+          if (active) setUnread(needReply);
         } catch {
           /* ignore */
         }
@@ -60,15 +58,8 @@ export default function Security() {
     }, []),
   );
 
-  const openAlerts = async () => {
-    try {
-      const all = await listAlerts();
-      await storage.setItem("alertsSeenCount", String(Array.isArray(all) ? all.length : 0));
-    } catch {
-      /* ignore */
-    }
-    setUnread(0);
-    router.push("/alerts-inbox");
+  const openAlerts = () => {
+    router.push("/incidents-inbox");
   };
 
   return (
@@ -360,6 +351,16 @@ function SmartQr() {
                   <Text style={[styles.lostText, { color: colors.green }]}>Recovered — pay the finder</Text>
                 </Pressable>
               )}
+              {kind === "vehicles" && (
+                <Pressable
+                  style={styles.familyBtn}
+                  onPress={() => router.push({ pathname: "/vehicle-contacts", params: { vehicleId: item.id, plate: item.number_plate } })}
+                  testID={`vehicle-family-${item.id}`}
+                >
+                  <Feather name="users" size={15} color={colors.purple} />
+                  <Text style={[styles.lostText, { color: colors.purple }]}>Family members</Text>
+                </Pressable>
+              )}
             </GlassCard>
           );
         })
@@ -456,6 +457,7 @@ const styles = StyleSheet.create({
   qrThumb: { width: 42, height: 42, borderRadius: 10, backgroundColor: tint.teal, alignItems: "center", justifyContent: "center" },
   lostToggle: { flexDirection: "row", alignItems: "center", gap: spacing.sm, alignSelf: "flex-start", paddingTop: spacing.xs, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border, width: "100%" },
   recoverBtn: { flexDirection: "row", alignItems: "center", gap: spacing.sm, alignSelf: "flex-start" },
+  familyBtn: { flexDirection: "row", alignItems: "center", gap: spacing.sm, alignSelf: "flex-start", paddingTop: spacing.xs, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border, width: "100%" },
   lostText: { fontFamily: fonts.displaySemi, fontSize: fontSize.sm },
   reward: { color: colors.textMuted, fontFamily: fonts.body, fontSize: fontSize.sm },
   rewardHelp: { color: colors.textDim, fontFamily: fonts.body, fontSize: fontSize.sm, lineHeight: 18 },

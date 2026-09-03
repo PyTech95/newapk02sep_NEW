@@ -273,3 +273,80 @@ export const sendCallCandidate = (
   candidate: WebRTCIceCandidatePayload,
 ) =>
   api.post(`/me/calls/${id}/candidate`, { candidate }).then((r) => r.data);
+
+// ---------- Incident detail + owner response ("I'm coming" / "Can't come") ----------
+export interface IncidentDetail {
+  id: string;
+  type: string;
+  number_plate?: string | null;
+  status?: string;
+  owner_response?: "coming" | "cant" | null;
+  scanner_note?: string | null;
+  scanner_phone?: string | null;
+  scanner_lat?: number | null;
+  scanner_lng?: number | null;
+  evidence_photo_base64?: string | null;
+  reporter_photo_base64?: string | null;
+  minutes_left?: number;
+  resolved?: boolean;
+  created_at?: string;
+}
+
+// Owner-side list of live incidents (actionable). Newest first.
+export const listIncidentDetails = () =>
+  api.get<{ count: number; results: IncidentDetail[] }>("/incidents").then((r) => r.data.results ?? []);
+
+// Fetch a single incident for the owner (find it in their list; fall back to the
+// public read if it has already rolled off the owner list).
+export const getIncidentDetail = async (id: string): Promise<IncidentDetail | null> => {
+  try {
+    const all = await listIncidentDetails();
+    const found = all.find((x) => x.id === id);
+    if (found) return found;
+  } catch {
+    /* ignore, try public */
+  }
+  try {
+    const { data } = await api.get<IncidentDetail>(`/public/incident/${id}`);
+    return data;
+  } catch {
+    return null;
+  }
+};
+
+// Owner replies to a live incident. The finder sees this on their scan page.
+export const respondIncident = (id: string, response: "coming" | "cant") =>
+  api.post(`/incidents/${id}/respond`, { response }).then((r) => r.data);
+
+export const resolveIncident = (id: string) =>
+  api.post(`/incidents/${id}/resolve`, {}).then((r) => r.data);
+
+// ---------- Vehicle alert contacts (a vehicle's "family members") ----------
+export interface VehicleContact {
+  id: string;
+  vehicle_id: string;
+  name: string;
+  phone: string;
+  relation: string | null;
+  receives_emergency: boolean;
+  receives_speed_alert: boolean;
+  receives_parking: boolean;
+}
+
+export const listVehicleContacts = (vehicleId: string) =>
+  api.get<VehicleContact[]>(`/vehicles/${vehicleId}/contacts`).then((r) => r.data);
+
+export const addVehicleContact = (
+  vehicleId: string,
+  payload: {
+    name: string;
+    phone: string;
+    relation?: string | null;
+    receives_emergency?: boolean;
+    receives_speed_alert?: boolean;
+    receives_parking?: boolean;
+  },
+) => api.post<VehicleContact>(`/vehicles/${vehicleId}/contacts`, payload).then((r) => r.data);
+
+export const deleteVehicleContact = (vehicleId: string, contactId: string) =>
+  api.delete(`/vehicles/${vehicleId}/contacts/${contactId}`).then((r) => r.data);

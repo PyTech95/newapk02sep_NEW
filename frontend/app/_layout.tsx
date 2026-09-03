@@ -71,9 +71,33 @@ export default function RootLayout() {
     if (Platform.OS === "web") return;
 
     const openFromData = (data: any) => {
-      const url = data?.deeplink || data?.action_url;
-      if (!url) return;
-      url.startsWith("http") ? Linking.openURL(url) : router.push(url);
+      // Prefer an explicit incident id so a tapped alert lands on the reply screen.
+      const incidentId =
+        data?.incident_id || data?.incidentId || data?.incident || null;
+      if (incidentId) {
+        router.push({ pathname: "/incident-detail", params: { id: String(incidentId) } });
+        return;
+      }
+
+      const url = data?.deeplink || data?.action_url || data?.url;
+      if (url) {
+        // Turn a neksathi incident/scan web link into an in-app reply screen.
+        const m = String(url).match(/\/(?:incident|scan|i)\/([\w-]+)/);
+        if (m) {
+          router.push({ pathname: "/incident-detail", params: { id: m[1] } });
+          return;
+        }
+        if (String(url).startsWith("http")) {
+          Linking.openURL(url);
+          return;
+        }
+        router.push(url);
+        return;
+      }
+
+      // Fallback: any alert/scan notification should still open the inbox so a
+      // tap never does nothing.
+      router.push("/incidents-inbox");
     };
 
     // Warm tap — app already open.

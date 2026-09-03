@@ -25,6 +25,8 @@ export const colors = {
   borderPurple: "rgba(139,92,246,0.4)",
   borderRed: "rgba(255,59,92,0.4)",
   borderTeal: "rgba(45,212,191,0.4)",
+  borderGreen: "rgba(52,211,153,0.4)",
+  borderAmber: "rgba(251,191,36,0.4)",
   glass: "rgba(19,19,31,0.72)",
 } as const;
 

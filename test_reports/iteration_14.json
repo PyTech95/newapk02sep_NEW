@@ -1,0 +1,40 @@
+{
+  "summary": "All 3 requested flows PASS on LIVE app (https://api.neksathi.in via preview) with demo@neksathi.app / demo1234, mobile viewport 390x844. (A) INCIDENTS INBOX + REPLY: Login → Security tab → bell (testID 'security-alerts-inbox') showed a red '9+' badge (correct since demo has 16+ unreplied incidents, capped at 9+). Tapping the bell navigated to /incidents-inbox (title 'Alerts', subtitle 'People who reported something on your QR'). GET /api/incidents returned 16 incident rows, each with a proper `incident-row-<id>` testID. Tapping the first row navigated to /incident-detail?id=9c354e6b-cd9c-4a92-8751-b7a9320fee45. Detail screen correctly rendered plate 'HR26CU0775', type badge 'Accident', finder note '\"minor scratch\"', status card ('The response window has closed.' for this expired one) and BOTH reply buttons. (B) REPLY BUTTONS: Tapped 'I'm coming' (testID 'incident-reply-coming') → POST /api/incidents/{id}/respond with {response:'coming'} succeeded, button relabelled to 'You're coming ✓' and status card updated to 'You told the finder you're coming.' Immediately after, tapped 'I can't come right now' (testID 'incident-reply-cant') → POST /api/incidents/{id}/respond with {response:'cant'} succeeded, coming button reverted to 'I'm coming' and cant button relabelled to 'Marked can't come ✓' with status 'You told the finder you can't come.' (C) INCIDENT BADGE: Bell rendered '9+' (unread count = 16, capped by security.tsx line 76-79 as designed). (D) VEHICLE FAMILY MEMBERS: On Security tab with Smart QR + Vehicles chip active (default), all 4 vehicle cards showed the purple 'Family members' link (testID 'vehicle-family-<vehicleId>'). Tapping the HR26CU0775 one navigated to /vehicle-contacts?vehicleId=55828ba3-…&plate=HR26CU0775 (title 'Family members'). GET /api/vehicles/{id}/contacts returned the existing 'Test Bro / 9888812345 / brother / Emergency' contact. Tapped 'Add family member' (testID 'vcontact-add') → the OverlayForm (testID 'vcontact-form') opened with NAME/PHONE/RELATION Fields and Emergency/Speed/Parking toggle rows. Filled name='TESTFAM1788438041', phone='9998887777', relation='brother' and submitted via 'overlay-submit-button' → POST /api/vehicles/{id}/contacts succeeded, list refreshed and the new contact card appeared. Tapped its trash icon (testID 'vcontact-del-bf627a6c-…') → DELETE /api/vehicles/{id}/contacts/{contactId} succeeded, contact disappeared and only 'Test Bro' remained. (E) REGRESSION: Smart QR list still loads on all 3 chips (Vehicles/Tags/ICE Cards render 1174/1087/1005 chars respectively). Tab nav to Family, Safety, Security all worked. No red-screen, no route crash. NOTE: 'tab-home' occasionally timed out clicking (pre-existing quirk noted in iteration_13 — same behaviour, not a regression from these changes). Push tap deep-link handler in _layout.tsx (lines 70-114) looks correct on code review (pushes to /incident-detail with incident_id from data or from URL /(incident|scan|i)/<id> regex, fallback to /incidents-inbox) but per the request cannot be exercised in web preview — must be validated on the native APK build.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": []
+  },
+  "test_report_links": [
+    "/tmp/00_after_login.png",
+    "/tmp/01_security.png",
+    "/tmp/02_inbox.png",
+    "/tmp/03_detail.png",
+    "/tmp/04_after_coming.png",
+    "/tmp/05_after_cant.png",
+    "/tmp/10_vehicles_list.png",
+    "/tmp/11_family_members.png",
+    "/tmp/12_form_open.png",
+    "/tmp/13_after_add.png",
+    "/tmp/14_after_delete.png",
+    "/tmp/15_regression_end.png"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "security.tsx useFocusEffect (lines 43-59) correctly reads listIncidentDetails() and filters `i.owner_response == null && !i.resolved` to compute unread — matches the bell semantics described in the request. Badge caps at '9+' (line 77).",
+    "incidents-inbox.tsx uses useFocusEffect(load) so the list is re-fetched when the user returns from an incident detail — after a reply the row's pill correctly flips from 'Reply' to 'Coming' or 'Can't' via `a.owner_response` (lines 84-96).",
+    "incident-detail.tsx getIncidentDetail() falls back to /public/incident/{id} if the id isn't in the owner list (endpoints.ts lines 301-315). That's a nice recovery for stale deep-links from cold-start notification taps.",
+    "vehicle-contacts.tsx correctly uses useFocusEffect + local reload after add/delete, resets the form via resetForm(), and validates name+phone client-side before POST (lines 50-72). No _id leaking in body.",
+    "_layout.tsx notification-tap handler is guarded by Platform.OS !== 'web' and cleans up the listener on unmount (line 113). Cold-start path (getLastNotificationResponseAsync) is also handled. Deep-link regex `/(incident|scan|i)/([\\w-]+)/` is reasonable; consider also matching /alerts/<id> if the backend ever sends that shape.",
+    "Only nit: getIncidentDetail() calls listIncidentDetails() every time the detail screen mounts — for slower networks the detail spinner will linger while the whole list downloads. A dedicated GET /api/incidents/{id} owner endpoint (or caching the list in a store) would be lighter, but not required."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A (skipped per request)", "frontend": "100% (all 5 requested scenarios: login, incidents inbox + reply, badge, vehicle family CRUD, regression)"},
+  "seed_data_creation": "None new. During test: replied 'coming' then 'cant' on live incident 9c354e6b-cd9c-4a92-8751-b7a9320fee45 (Accident on HR26CU0775) — its owner_response is now 'cant' in the live DB. Created + deleted one vehicle-contact TESTFAM1788438041 for vehicle 55828ba3-60ee-4529-a85f-39fdfcd73560; no residue.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Preview: https://mobile-safety-app-2.preview.emergentagent.com | API: https://api.neksathi.in | Login: [data-testid=fill-demo-button] then [data-testid=login-submit-button]. Verified testIDs for these features: security-alerts-inbox, incident-row-<id>, incident-reply-coming, incident-reply-cant, incident-call-finder, vehicle-family-<vehicleId>, vcontact-add, vcontact-form, vcontact-name, vcontact-phone, vcontact-relation, vcontact-emergency, vcontact-speed, vcontact-parking, vcontact-<id>, vcontact-del-<id>, overlay-submit-button, overlay-cancel-button. Push-notification tap handling (_layout.tsx lines 70-114) is web-guarded — MUST be validated only on the native APK build. Same for the WebRTC voice call — web preview only shows the ring overlay flow, not audio.",
+  "rca_of_issue": "N/A — all three user-reported problems (notification tap opens nothing, no 'I'm coming' reply for owner, no family-member option on vehicle) are resolved in-app for the parts that CAN be exercised on web. Notification-tap routing itself must be verified on the APK (push isn't delivered to the web preview), but the router.push code paths in _layout.tsx are correct and the /incident-detail screen they land on works end-to-end."
+}
