@@ -8,25 +8,39 @@
     "scheme": "frontend",
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
+
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.emergent.mobilesafetyapp.r8ptmu",
+      "bundleIdentifier": "com.neksathi.app",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Share your live location during an SOS",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "Keep family updated with your location",
         "NSCameraUsageDescription": "Scan a NekSathi QR to help return a lost item",
+        "NSMicrophoneUsageDescription": "Use your microphone for NekSathi in-app voice calls",
         "UIBackgroundModes": [
           "location"
         ]
       }
     },
+
     "android": {
+      "package": "com.neksathi.app",
+
+      "googleServicesFile": "./google-services.json",
+
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyANgz_fcpV8WhcsDKQx7GK0G-_12guy7HU"
+        }
+      },
+
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#06060f"
       },
+
       "edgeToEdgeEnabled": true,
-      "package": "com.emergent.mobilesafetyapp.r8ptmu",
+
       "permissions": [
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",
@@ -34,16 +48,23 @@
         "FOREGROUND_SERVICE",
         "FOREGROUND_SERVICE_LOCATION",
         "CAMERA",
-        "POST_NOTIFICATIONS"
+        "POST_NOTIFICATIONS",
+        "RECORD_AUDIO",
+        "MODIFY_AUDIO_SETTINGS"
       ]
     },
+
     "web": {
       "bundler": "metro",
       "output": "single",
       "favicon": "./assets/images/favicon.png"
     },
+
     "plugins": [
       "expo-router",
+
+      "@config-plugins/react-native-webrtc",
+
       [
         "expo-notifications",
         {
@@ -51,6 +72,7 @@
           "color": "#06060f"
         }
       ],
+
       [
         "expo-splash-screen",
         {
@@ -60,6 +82,7 @@
           "backgroundColor": "#06060f"
         }
       ],
+
       [
         "expo-location",
         {
@@ -69,17 +92,28 @@
           "isAndroidForegroundServiceEnabled": true
         }
       ],
+
       [
         "expo-camera",
         {
           "cameraPermission": "Scan a NekSathi QR to help return a lost item"
         }
       ],
+
       "@react-native-community/datetimepicker",
-      "expo-audio"
+      "expo-audio",
+      "expo-asset"
     ],
+
     "experiments": {
       "typedRoutes": true
+    },
+
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "baabc99c-a923-464d-bd32-988e4e3ff74b"
+      }
     }
   }
 }

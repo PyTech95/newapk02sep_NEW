@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "825841887438",
+    "project_id": "neksathi-c8e0c",
+    "storage_bucket": "neksathi-c8e0c.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:825841887438:android:60acb491f3f974859f089f",
+        "android_client_info": {
+          "package_name": "com.neksathi.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCDS5UuAqlQmUD3bLNoh2bS-PS-2W5cLw0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

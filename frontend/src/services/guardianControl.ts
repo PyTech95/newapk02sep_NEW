@@ -12,7 +12,7 @@ import { getSchedule, isWithinWindow } from "./guardianSchedule";
 export const AUTOARM_KEY = "neksathi_guardian_autoarm";
 
 export async function getAutoArm(): Promise<boolean> {
-  return (await storage.getItem(AUTOARM_KEY, false)) === true;
+  return !!(await storage.getItem(AUTOARM_KEY, false));
 }
 export async function setAutoArm(v: boolean): Promise<void> {
   await storage.setItem(AUTOARM_KEY, v);

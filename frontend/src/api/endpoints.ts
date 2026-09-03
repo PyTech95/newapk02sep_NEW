@@ -164,8 +164,7 @@ export const reportSimSwap = (id: string) =>
 // scan URL that a QR should encode — the public web portal page on neksathi.in
 // (the API lives on api.neksathi.in; the human-facing scan page is on the web domain).
 export const scanUrl = (qrId: string) =>
-  `${process.env.EXPO_PUBLIC_WEB_URL || "https://neksathi.in"}/scan/${qrId}`;
-
+  `https://neksathi.in/scan/${qrId}`;
 // ---------- Public scan / report (finder flow, no ownership required) ----------
 export interface ResolvedItem {
   kind?: string;
@@ -241,3 +240,36 @@ export const parseQrValue = (value: string): string => {
   }
   return trimmed.split(/[/?#]/).pop() || trimmed;
 };
+export interface WebRTCSessionDescriptionPayload {
+  type: "offer" | "answer";
+  sdp: string;
+}
+
+export interface WebRTCIceCandidatePayload {
+  candidate: string;
+  sdpMid?: string | null;
+  sdpMLineIndex?: number | null;
+  usernameFragment?: string | null;
+}
+
+export interface CallDetails {
+  call_id?: string;
+  status?: string;
+  offer?: WebRTCSessionDescriptionPayload | null;
+  caller_candidates?: WebRTCIceCandidatePayload[];
+}
+
+export const getCallDetails = (id: string) =>
+  api.get<CallDetails>(`/me/calls/${id}`).then((r) => r.data);
+
+export const acceptCall = (
+  id: string,
+  sdp: WebRTCSessionDescriptionPayload,
+) =>
+  api.post(`/me/calls/${id}/accept`, { sdp }).then((r) => r.data);
+
+export const sendCallCandidate = (
+  id: string,
+  candidate: WebRTCIceCandidatePayload,
+) =>
+  api.post(`/me/calls/${id}/candidate`, { candidate }).then((r) => r.data);

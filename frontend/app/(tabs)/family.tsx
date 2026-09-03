@@ -8,8 +8,21 @@ import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { errMessage } from "@/src/api/client";
-import { createFamily, familyAckSos, familySos, getFamily, joinFamily, listSafeZones } from "@/src/api/endpoints";
-import { FamilyMember, FamilyResponse, FamilySos, SafeZone } from "@/src/api/types";
+import {
+  createFamily,
+  familyAckSos,
+  familySos,
+  getFamily,
+  joinFamily,
+  listSafeZones,
+  type FamilySos,
+} from "@/src/api/endpoints";
+
+import {
+  FamilyMember,
+  FamilyResponse,
+  SafeZone,
+} from "@/src/api/types";
 import { Chip } from "@/src/components/Chip";
 import { EmptyState } from "@/src/components/EmptyState";
 import { FamilyMap } from "@/src/components/FamilyMap";
