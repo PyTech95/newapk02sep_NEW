@@ -1,14 +1,13 @@
 {
   "expo": {
     "name": "NekSathi",
-    "slug": "frontend",
+    "slug": "mobile-safety-app-2",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "frontend",
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
-
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.neksathi.app",
@@ -22,25 +21,19 @@
         ]
       }
     },
-
     "android": {
       "package": "com.neksathi.app",
-
       "googleServicesFile": "./google-services.json",
-
       "config": {
         "googleMaps": {
           "apiKey": "AIzaSyANgz_fcpV8WhcsDKQx7GK0G-_12guy7HU"
         }
       },
-
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#06060f"
       },
-
       "edgeToEdgeEnabled": true,
-
       "permissions": [
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",
@@ -53,18 +46,14 @@
         "MODIFY_AUDIO_SETTINGS"
       ]
     },
-
     "web": {
       "bundler": "metro",
       "output": "single",
       "favicon": "./assets/images/favicon.png"
     },
-
     "plugins": [
       "expo-router",
-
       "@config-plugins/react-native-webrtc",
-
       [
         "expo-notifications",
         {
@@ -72,7 +61,6 @@
           "color": "#06060f"
         }
       ],
-
       [
         "expo-splash-screen",
         {
@@ -82,7 +70,6 @@
           "backgroundColor": "#06060f"
         }
       ],
-
       [
         "expo-location",
         {
@@ -92,25 +79,23 @@
           "isAndroidForegroundServiceEnabled": true
         }
       ],
-
       [
         "expo-camera",
         {
           "cameraPermission": "Scan a NekSathi QR to help return a lost item"
         }
       ],
-
       "@react-native-community/datetimepicker",
       "expo-audio",
       "expo-asset"
     ],
-
     "experiments": {
       "typedRoutes": true
     },
-
     "extra": {
-      "router": {}
-    }
+      "router": {},
+      "eas": {}
+    },
+    "jsEngine": "jsc"
   }
 }
