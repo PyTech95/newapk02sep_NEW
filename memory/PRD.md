@@ -109,3 +109,12 @@ Build a native mobile app "NekSathi" (Expo + expo-router, TypeScript) that talks
 
 ## Safety Check-In + Fake-Off Decoy (done, tested)
 - check-in.tsx timer -> auto-SOS reconcile on Home focus. decoy.tsx fake shutdown keeps Guardian tracking.
+
+## Session (fork) — Incident reply, Family-on-vehicle, TezSandesh OTP, Deploy fix
+- INCIDENT REPLY (done, tested): app/incident-detail.tsx + incidents-inbox.tsx. Owner sees scan incidents and replies "I'm coming"/"Can't come" via POST /api/incidents/{id}/respond {response:'coming'|'cant'}. Security bell -> /incidents-inbox with needs-reply badge. Notification tap routing in _layout.tsx routes to /incident-detail (data.incident_id or URL regex) else /incidents-inbox.
+- VEHICLE FAMILY CONTACTS (done): app/vehicle-contacts.tsx via /api/vehicles/{id}/contacts (name/phone/relation + emergency/speed/parking). Linked from vehicle cards in security.tsx.
+- WEBRTC WEB SHIM (done): src/lib/webrtc.ts|.web.ts + incall.ts|.web.ts so react-native-webrtc doesn't break the web bundle; native unchanged. RTC_CONFIG in src/lib/rtc.ts still uses DEAD free openrelay TURN -> real call drops on mobile data (NEEDS a working TURN server).
+- TEZSANDESH WHATSAPP OTP (backend done+tested, 12/12): services/phone.py, tezsandesh_otp.py, otp_service.py. server.py endpoints /auth/otp/request, /verify, /resend, /status. Managed provider (send returns request_id, verify checks). Rate limits + E.164 + one-time. backend/.env has TEZSANDESH_* (KEY IS REVOKED - need new active key + active OTP subscription). NOTE: this is the WORKSPACE backend; the live app uses api.neksathi.in whose source is NOT here.
+- OTP mobile: app/(auth)/otp.tsx resend countdown + otpResend endpoint (falls back to request).
+- DEPLOY FIX (done): removed committed frontend/eas.json + stale extra.eas.projectId from app.json (conflicted with pipeline persisted id 885d8c5b) -> fixes EAS 'expo config --json' project:init crash. eas_json_absent now true.
+- OPEN: (1) "Ring ALL family members on QR-scan call" needs BACKEND fan-out on api.neksathi.in (tested: sharing works via /vehicles/{id}/invites+/shares, but call/start rings ONLY owner). (2) TURN server for reliable calls. (3) New active TezSandesh key + OTP subscription. (4) Deploy: user chose Option A - set EXPO_PUBLIC_API_URL secret in Deployment Panel + redeploy (app keeps external backend).
